@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Toast 通知布局：固定宽度 360，高度随文本自适应；根容器即阴影内边缘，padding 由框架阴影自动注入 -->
+<Window size="360,80" caption="0,0,0,0" use_system_caption="false"
+        shadow_type="default" shadow_attached="true"
+        layered_window="true" size_box="0,0,0,0"
+        icon="public/caption/logo.ico">
+    <!-- 圆角通知条：点击/悬停事件统一由根容器处理，内部非交互控件全部 mouse_enabled="false" -->
+    <HBox width="360" height="auto" max_height="320" bkcolor="bg_tooltip" border_round="8,8">
+        <VBox width="stretch" height="auto" padding="16,12,16,12" mouse_enabled="false" tab_stop="false">
+            <HBox width="stretch" height="auto" mouse_enabled="false">
+                <Control name="toast_icon" width="20" height="20" valign="center" margin="0,0,12,0"
+                         mouse_enabled="false" tab_stop="false"/>
+                <!-- 文本宽度必须为固定值 296（=360 外宽 - 左右内边距 16*2 - 图标 20 - 图标右 margin 12）：
+                     布局估算时容器内边距已扣除（VLayout/HLayout 估算与真实布局口径一致），
+                     但不会扣除同行固定宽兄弟所占宽度，即多行 stretch 标签会按 328（而非 296）换行，
+                     英文按词换行时会少算行数，导致窗口高度偏短、末行被裁切。固定宽可保证估算与实际布局一致 -->
+                <Label name="toast_text" width="296" height="auto" min_height="20"
+                       mouse_enabled="false" tab_stop="false" auto_tooltip="true"
+                       multi_line="true" font="system_regular_14"
+                       normal_text_color="text_tooltip" text_align="hleft,vcenter"/>
+            </HBox>
+            <!-- 操作按钮区：默认隐藏；仅当 Show 传入 actions 时由代码动态创建按钮并设为可见。
+                 按钮 mouse_enabled=true 可点击，且不会冒泡到根容器（根容器的"整条点击关闭"仅对
+                 非交互区域生效）；首位的弹性占位把按钮推到右侧（Win32 通知风格）。 -->
+            <HBox name="toast_actions" width="stretch" height="auto" visible="false" margin="0,8,0,0"
+                  mouse_enabled="true" tab_stop="false">
+                <Control width="stretch" mouse_enabled="false" tab_stop="false"/>
+            </HBox>
+        </VBox>
+    </HBox>
+</Window>

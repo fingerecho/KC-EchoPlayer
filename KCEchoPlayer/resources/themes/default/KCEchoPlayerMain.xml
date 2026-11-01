@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 媒体中心示例：颜色定义在 color_light / color_dark 中，切换主题即可看到浅色/深色两种风格 -->
+<Window size="1280,800" min_size="1024,640" caption="0,0,0,56"
+        round_corner="14,14" size_box="4,4,4,4"
+        shadow_type="none_round" shadow_attached="true"
+        shadow_border_round="14,14" shadow_border_size="0">
+    <VBox bkcolor="mc_bg_window" width="stretch" height="stretch"
+          border_size="1" border_round="14,14" border_color="mc_window_border">
+        <!-- ===================== 标题栏 ===================== -->
+        <HBox name="window_title_bar" height="56" bkcolor="mc_bg_titlebar" padding="20,0,16,0">
+            <HBox valign="center" width="auto" margin="0,15,0,0">
+                <Control width="24" height="24" border_round="12,12" bkcolor="mc_accent" margin="0,0,10,0"/>
+                <Label class="mc_title_text" text="媒体中心"/>
+            </HBox>
+            <Control width="stretch" height="stretch" mouse_enabled="false"/>
+            <HBox valign="center" width="auto" child_margin="6">
+                <Button class="mc_win_btn" name="btn_window_theme" text="主题"/>
+                <Button class="mc_win_btn" name="btn_window_min" text="—"/>
+                <Button class="mc_win_btn" name="btn_window_max" text="□"/>
+                <Button class="mc_win_btn" name="btn_window_restore" text="❐" visible="false"/>
+                <Button class="mc_win_btn" name="btn_window_close" text="✕"/>
+            </HBox>
+        </HBox>
+
+        <!-- ===================== 主体区域 ===================== -->
+        <HBox width="stretch" height="stretch" padding="20,16,20,16" child_margin="16">
+            <!-- 播放列表 -->
+            <VBox class="mc_panel" width="280" height="stretch" padding="16,16,4,16">
+                <HBox height="36" valign="center">
+                    <Label class="mc_panel_title" text="播放列表"/>
+                    <Control width="stretch" height="stretch" mouse_enabled="false"/>
+                    <Button class="mc_btn_ghost" name="btn_open" text="打开"/>
+                </HBox>
+                <VListBox class="mc_list" name="playlist" width="stretch" height="stretch" margin="0,12,0,0" padding="0,0,2,0" child_margin="2" scrollbar_padding="0,0,2,0" scrollbar_float="false">
+                    <ListBoxItem class="mc_list_item" height="46">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num" text="01" width="24"/>
+                            <Label class="mc_item_name" text="夜航电台.mp3"/>
+                        </HBox>
+                    </ListBoxItem>
+                    <ListBoxItem class="mc_list_item" height="46">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num" text="02" width="24"/>
+                            <Label class="mc_item_name" text="城市风景.mp4"/>
+                        </HBox>
+                    </ListBoxItem>
+                    <ListBoxItem class="mc_list_item" height="46">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num" text="03" width="24"/>
+                            <Label class="mc_item_name" text="雨后咖啡.mp3"/>
+                        </HBox>
+                    </ListBoxItem>
+                    <ListBoxItem class="mc_list_item" height="46">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num" text="04" width="24"/>
+                            <Label class="mc_item_name" text="清晨骑行.mp4"/>
+                        </HBox>
+                    </ListBoxItem>
+                    <ListBoxItem class="mc_list_item" height="46">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num" text="05" width="24"/>
+                            <Label class="mc_item_name" text="海边散步.mp3"/>
+                        </HBox>
+                    </ListBoxItem>
+                    <ListBoxItem class="mc_list_item" height="46">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num" text="06" width="24"/>
+                            <Label class="mc_item_name" text="午后阳光.mp4"/>
+                        </HBox>
+                    </ListBoxItem>
+                    <ListBoxItem class="mc_list_item" height="46" selected="true">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num_sel" text="07" width="24"/>
+                            <Label class="mc_item_name_sel" text="城市夜行.mp3"/>
+                        </HBox>
+                    </ListBoxItem>
+                    <ListBoxItem class="mc_list_item" height="46" selected="true">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num_sel" text="08" width="24"/>
+                            <Label class="mc_item_name_sel" text="城市夜行.mp3"/>
+                        </HBox>
+                    </ListBoxItem>
+                    <ListBoxItem class="mc_list_item" height="46" selected="true">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num_sel" text="09" width="24"/>
+                            <Label class="mc_item_name_sel" text="城市夜行.mp3"/>
+                        </HBox>
+                    </ListBoxItem>
+                    <ListBoxItem class="mc_list_item" height="46" selected="true">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num_sel" text="10" width="24"/>
+                            <Label class="mc_item_name_sel" text="城市夜行.mp3"/>
+                        </HBox>
+                    </ListBoxItem>
+                    <ListBoxItem class="mc_list_item" height="46" selected="true">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num_sel" text="11" width="24"/>
+                            <Label class="mc_item_name_sel" text="城市夜行.mp3"/>
+                        </HBox>
+                    </ListBoxItem>
+                    <ListBoxItem class="mc_list_item" height="46" selected="true">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num_sel" text="12" width="24"/>
+                            <Label class="mc_item_name_sel" text="城市夜行.mp3"/>
+                        </HBox>
+                    </ListBoxItem>
+                    <ListBoxItem class="mc_list_item" height="46" selected="true">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num_sel" text="13" width="24"/>
+                            <Label class="mc_item_name_sel" text="城市夜行.mp3"/>
+                        </HBox>
+                    </ListBoxItem>
+                    <ListBoxItem class="mc_list_item" height="46" selected="true">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num_sel" text="14" width="24"/>
+                            <Label class="mc_item_name_sel" text="城市夜行.mp3"/>
+                        </HBox>
+                    </ListBoxItem>
+                    <ListBoxItem class="mc_list_item" height="46" selected="true">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num_sel" text="15" width="24"/>
+                            <Label class="mc_item_name_sel" text="城市夜行.mp3"/>
+                        </HBox>
+                    </ListBoxItem>
+                    <ListBoxItem class="mc_list_item" height="46" selected="true">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num_sel" text="16" width="24"/>
+                            <Label class="mc_item_name_sel" text="城市夜行.mp3"/>
+                        </HBox>
+                    </ListBoxItem>
+                    <ListBoxItem class="mc_list_item" height="46" selected="true">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num_sel" text="17" width="24"/>
+                            <Label class="mc_item_name_sel" text="城市夜行.mp3"/>
+                        </HBox>
+                    </ListBoxItem>
+                    <ListBoxItem class="mc_list_item" height="46" selected="true">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num_sel" text="18" width="24"/>
+                            <Label class="mc_item_name_sel" text="城市夜行.mp3"/>
+                        </HBox>
+                    </ListBoxItem>
+                    <ListBoxItem class="mc_list_item" height="46" selected="true">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num_sel" text="19" width="24"/>
+                            <Label class="mc_item_name_sel" text="城市夜行.mp3"/>
+                        </HBox>
+                    </ListBoxItem>
+                    <ListBoxItem class="mc_list_item" height="46" selected="true">
+                        <HBox padding="12,0,12,0" height="stretch" valign="center" child_margin="16">
+                            <Label class="mc_item_num_sel" text="20" width="24"/>
+                            <Label class="mc_item_name_sel" text="城市夜行.mp3"/>
+                        </HBox>
+                    </ListBoxItem>
+                </VListBox>
+            </VBox>
+
+            <!-- 右侧：媒体展示 + 音频可视化 + 控制栏 -->
+            <VBox width="stretch" height="stretch">
+                <HBox width="stretch" height="stretch" child_margin="16">
+                    <!-- 媒体展示区 -->
+                    <VBox width="stretch" height="stretch">
+                        <HBox height="36" valign="center">
+                            <Control class="mc_dot" margin="0,4,10,0"/>
+                            <Label class="mc_sub_title" name="media_lbl_now_playing" text="Duolib"/>
+                        </HBox>
+                        <Control class="mc_media" name="media_display" width="stretch" height="stretch" margin="0,12,0,0"/>
+                    </VBox>
+
+                    <!-- 音频可视化区 -->
+                    <VBox class="mc_panel" width="300" height="stretch" padding="16,16,16,16">
+                        <HBox height="36" valign="center">
+                            <Control class="mc_dot" margin="0,4,10,0"/>
+                            <Label class="mc_sub_title" name="pannel_lbl_now_playing" text="Duolib"/>
+                        </HBox>
+                        <BitmapControl class="mc_visual" name="visual_display" width="stretch" height="stretch" margin="0,12,0,0"/>
+                        <Label class="mc_body_text" name="lbl_now_playing" text="正在播放: 城市夜行.mp3"
+                               halign="center" valign="bottom" height="36"/>
+                    </VBox>
+                </HBox>
+
+                <!-- 控制栏：高度、行高、子项尺寸均使用百分比，窗口缩放时整体按比例调整 -->
+                <HBox class="mc_control_bar" width="stretch" height="15%" min_height="76" max_height="130" margin="0,16,0,0">
+                    <Control class="mc_control_glass" float="true" width="stretch" height="stretch"/>
+                    <VBox class="mc_control_content" width="stretch" height="stretch">
+                        <Control width="stretch" height="27%" mouse_enabled="false"/>
+                        <HBox width="stretch" height="46%">
+                            <HBox width="18%" height="100%" valign="center">
+                                <Button class="mc_btn_play" name="btn_play" text="播放" width="55%" height="100%"/>
+                                <Button class="mc_btn_pause" name="btn_pause" text="暂停" width="40%" height="100%" margin="8,0,0,0"/>
+                            </HBox>
+
+                            <HBox width="22%" height="100%" valign="center" child_margin="6" margin="24,0,24,0">
+                                <Button class="mc_btn_icon" name="btn_prev" text="|&lt;" width="22%" height="80%"/>
+                                <Button class="mc_btn_icon" name="btn_rewind" text="&lt;&lt;" width="22%" height="80%"/>
+                                <Button class="mc_btn_icon" name="btn_forward" text="&gt;&gt;" width="22%" height="80%"/>
+                                <Button class="mc_btn_icon" name="btn_next" text="&gt;|" width="22%" height="80%"/>
+                            </HBox>
+
+                            <VBox width="40%" valign="center" margin="0,8,0,0">
+                                <Slider class="mc_slider" name="slider_progress"/>
+                                <HBox width="stretch" height="18" valign="center">
+                                    <Label class="mc_time_text" name="lbl_current_time" text="03:48"/>
+                                    <Control width="stretch" height="stretch" mouse_enabled="false"/>
+                                    <Label class="mc_time_text" name="lbl_total_time" text="05:12"/>
+                                </HBox>
+                            </VBox>
+
+                            <HBox width="20%" height="100%" valign="center" child_margin="8" margin="24,0,0,0">
+                                <Button class="mc_btn_icon" name="btn_mute" text="静音"/>
+                                <Slider class="mc_slider" name="slider_volume" width="stretch"/>
+                            </HBox>
+                        </HBox>
+                        <Control width="stretch" height="27%" mouse_enabled="false"/>
+                    </VBox>
+                </HBox>
+            </VBox>
+        </HBox>
+    </VBox>
+</Window>
