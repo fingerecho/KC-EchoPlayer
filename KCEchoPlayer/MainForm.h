@@ -55,6 +55,13 @@ private:
     void ShowNetEasePlayer(bool show);
     void ToggleNetEasePlayback();
     void UpdateNetEasePlayButton();
+    void InitNetEaseProgressBar();
+    void UpdateNetEaseListIndices();
+    void SetNetEaseProgressHovered(bool hovered);
+    void UpdateNetEaseProgressTip(double ratio);
+    void UpdateNetEaseProgressFromMouse(const ui::UiPoint& ptMouse);
+    void SeekNetEaseProgress(double ratio);
+    double GetNetEaseDuration() const;
     void AddPlaylistItem(const std::wstring& filePath, size_t index);
     void PlayIndex(size_t index);
     void PlayCurrent();
@@ -89,6 +96,20 @@ private:
     ui::Button* m_neBtnPlayerBackTop = nullptr;
     ui::Button* m_nePlayPauseNormal = nullptr;
     ui::Button* m_nePlayPausePlayer = nullptr;
+    ui::Slider* m_neProgress = nullptr;
+    ui::Label* m_neProgressTip = nullptr;
+    bool m_neSeeking = false;
+    bool m_neProgressHovered = false;
+    int m_neLocalActiveRow = 0;
+    int m_neRecentActiveRow = -1;
+    std::vector<ui::Control*> m_neLocalRows;
+    std::vector<ui::Button*> m_neLocalIndexButtons;
+    std::vector<bool> m_neLocalRowHovered;
+    std::vector<bool> m_neLocalIconHovered;
+    std::vector<ui::Control*> m_neRecentRows;
+    std::vector<ui::Button*> m_neRecentIndexButtons;
+    std::vector<bool> m_neRecentRowHovered;
+    std::vector<bool> m_neRecentIconHovered;
 
     ui::VListBox* m_playlistBox = nullptr;
     ui::Button* m_btnOpen = nullptr;

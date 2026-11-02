@@ -408,6 +408,66 @@ void MainForm::InitNetEaseUi()
     };
     bindPlayPause(m_nePlayPauseNormal);
     bindPlayPause(m_nePlayPausePlayer);
+
+    InitNetEaseProgressBar();
+
+    auto initRows = [this](const DString& hoverPrefix, const DString& indexPrefix, int count,
+                           std::vector<ui::Control*>& rows,
+                           std::vector<ui::Button*>& indexes,
+                           std::vector<bool>& rowHovered,
+                           std::vector<bool>& iconHovered) {
+        rows.assign(count, nullptr);
+        indexes.assign(count, nullptr);
+        rowHovered.assign(count, false);
+        iconHovered.assign(count, false);
+        for (int i = 0; i < count; ++i) {
+            wchar_t suffix[16] = { 0 };
+            swprintf_s(suffix, L"%d", i);
+            DString hoverName = hoverPrefix;
+            hoverName += suffix;
+            DString indexName = indexPrefix;
+            indexName += suffix;
+
+            ui::Control* row = FindControl(hoverName);
+            ui::Button* index = dynamic_cast<ui::Button*>(FindControl(indexName));
+            rows[static_cast<size_t>(i)] = row;
+            indexes[static_cast<size_t>(i)] = index;
+
+            auto* rowHoveredPtr = &rowHovered;
+            auto* iconHoveredPtr = &iconHovered;
+            if (row != nullptr) {
+                row->AttachMouseEnter([this, i, rowHoveredPtr](const ui::EventArgs& /*args*/) {
+                    (*rowHoveredPtr)[static_cast<size_t>(i)] = true;
+                    UpdateNetEaseListIndices();
+                    return true;
+                    });
+                row->AttachMouseLeave([this, i, rowHoveredPtr, iconHoveredPtr](const ui::EventArgs& /*args*/) {
+                    (*rowHoveredPtr)[static_cast<size_t>(i)] = false;
+                    (*iconHoveredPtr)[static_cast<size_t>(i)] = false;
+                    UpdateNetEaseListIndices();
+                    return true;
+                    });
+            }
+            if (index != nullptr) {
+                index->AttachMouseEnter([this, i, iconHoveredPtr](const ui::EventArgs& /*args*/) {
+                    (*iconHoveredPtr)[static_cast<size_t>(i)] = true;
+                    UpdateNetEaseListIndices();
+                    return true;
+                    });
+                index->AttachMouseLeave([this, i, iconHoveredPtr](const ui::EventArgs& /*args*/) {
+                    (*iconHoveredPtr)[static_cast<size_t>(i)] = false;
+                    UpdateNetEaseListIndices();
+                    return true;
+                    });
+            }
+        }
+    };
+    initRows(_T("ne_local_hover_"), _T("ne_local_index_"), 3,
+             m_neLocalRows, m_neLocalIndexButtons, m_neLocalRowHovered, m_neLocalIconHovered);
+    initRows(_T("ne_recent_hover_"), _T("ne_recent_index_"), 9,
+             m_neRecentRows, m_neRecentIndexButtons, m_neRecentRowHovered, m_neRecentIconHovered);
+
+    UpdateNetEaseListIndices();
     UpdateNetEasePlayButton();
 }
 
@@ -471,6 +531,193 @@ void MainForm::UpdateNetEasePlayButton()
     };
     updateButton(m_nePlayPauseNormal);
     updateButton(m_nePlayPausePlayer);
+}
+
+void MainForm::InitNetEaseProgressBar()
+{
+    m_neProgress = dynamic_cast<ui::Slider*>(FindControl(_T("ne_progress")));
+    m_neProgressTip = dynamic_cast<ui::Label*>(FindControl(_T("ne_progress_tip")));
+    if (m_neProgress == nullptr) {
+        return;
+    }
+
+    m_neProgress->SetMinValue(0);
+    m_neProgress->SetMaxValue(1000);
+    m_neProgress->SetThumbSize(ui::UiSize(0, 0), false);
+    m_neProgress->SetValueNoEvent(47.0);
+
+    m_neProgress->AttachMouseEnter([this](const ui::EventArgs& args) {
+        m_neProgressHovered = true;
+        SetNetEaseProgressHovered(true);
+        UpdateNetEaseProgressFromMouse(args.ptMouse);
+        return true;
+        });
+    m_neProgress->AttachMouseLeave([this](const ui::EventArgs& /*args*/) {
+        m_neProgressHovered = false;
+        if (!m_neSeeking) {
+            SetNetEaseProgressHovered(false);
+            if (m_neProgressTip != nullptr) {
+                m_neProgressTip->SetVisible(false);
+            }
+        }
+        return true;
+        });
+    m_neProgress->AttachMouseMove([this](const ui::EventArgs& args) {
+        m_neProgressHovered = true;
+        SetNetEaseProgressHovered(true);
+        UpdateNetEaseProgressFromMouse(args.ptMouse);
+        return true;
+        });
+    m_neProgress->AttachButtonDown([this](const ui::EventArgs& args) {
+        m_neSeeking = true;
+        m_neProgressHovered = true;
+        SetNetEaseProgressHovered(true);
+        UpdateNetEaseProgressFromMouse(args.ptMouse);
+        return true;
+        });
+    m_neProgress->AttachButtonUp([this](const ui::EventArgs& /*args*/) {
+        m_neSeeking = false;
+        if (m_neProgress != nullptr) {
+            const double ratio = std::clamp(m_neProgress->GetValue() / 1000.0, 0.0, 1.0);
+            SeekNetEaseProgress(ratio);
+            UpdateNetEaseProgressTip(ratio);
+        }
+        return true;
+        });
+    m_neProgress->AttachValueChanged([this](const ui::EventArgs& /*args*/) {
+        if (m_neProgress == nullptr) {
+            return true;
+        }
+        const double ratio = std::clamp(m_neProgress->GetValue() / 1000.0, 0.0, 1.0);
+        if (m_neSeeking) {
+            SeekNetEaseProgress(ratio);
+        }
+        UpdateNetEaseProgressTip(ratio);
+        return true;
+        });
+}
+
+double MainForm::GetNetEaseDuration() const
+{
+    if (m_player.HasStream()) {
+        const double duration = m_player.GetDuration();
+        if (duration > 0.0) {
+            return duration;
+        }
+    }
+    return 236.0;
+}
+
+void MainForm::SeekNetEaseProgress(double ratio)
+{
+    if (!m_player.HasStream()) {
+        return;
+    }
+    const double duration = m_player.GetDuration();
+    if (duration > 0.0) {
+        m_player.SeekTo(std::clamp(ratio, 0.0, 1.0) * duration);
+    }
+}
+
+void MainForm::SetNetEaseProgressHovered(bool hovered)
+{
+    if (m_neProgress != nullptr) {
+        m_neProgress->SetFixedHeight(ui::UiFixedInt(hovered ? 7 : 4), true, true);
+    }
+}
+
+void MainForm::UpdateNetEaseProgressFromMouse(const ui::UiPoint& ptMouse)
+{
+    if (m_neProgress == nullptr) {
+        return;
+    }
+    const ui::UiRect rect = m_neProgress->GetPos();
+    if (rect.Width() <= 0) {
+        return;
+    }
+    const double ratio = std::clamp((ptMouse.x - rect.left) / static_cast<double>(rect.Width()), 0.0, 1.0);
+    UpdateNetEaseProgressTip(ratio);
+}
+
+void MainForm::UpdateNetEaseProgressTip(double ratio)
+{
+    if ((m_neProgress == nullptr) || (m_neProgressTip == nullptr)) {
+        return;
+    }
+
+    const double duration = GetNetEaseDuration();
+    const double preview = std::clamp(ratio, 0.0, 1.0) * duration;
+    std::wstring text = FormatTime(preview);
+    text += L" / ";
+    text += FormatTime(duration);
+    m_neProgressTip->SetText(text.c_str());
+
+    ui::UiRect rect = m_neProgress->GetPos();
+    ui::UiRect tipRect = m_neProgressTip->GetPos();
+    int tipWidth = tipRect.Width();
+    int tipHeight = tipRect.Height();
+    if (tipWidth <= 0) {
+        tipWidth = static_cast<int>(120 * m_neProgress->Dpi().GetDisplayScale());
+    }
+    if (tipHeight <= 0) {
+        tipHeight = static_cast<int>(24 * m_neProgress->Dpi().GetDisplayScale());
+    }
+
+    int x = rect.left + static_cast<int>(std::clamp(ratio, 0.0, 1.0) * rect.Width()) - tipWidth / 2;
+    x = std::clamp(x, rect.left, std::max(rect.left, rect.right - tipWidth));
+    const int y = rect.bottom + 4;
+    int marginX = x;
+    int marginY = y;
+    if (m_neProgressTip->GetParent() != nullptr) {
+        const ui::UiRect parentRect = m_neProgressTip->GetParent()->GetPos();
+        marginX -= parentRect.left;
+        marginY -= parentRect.top;
+    }
+    m_neProgressTip->SetMargin(ui::UiMargin(marginX, marginY, 0, 0), false);
+    m_neProgressTip->SetVisible(true);
+}
+
+void MainForm::UpdateNetEaseListIndices()
+{
+    auto updateList = [this](const std::vector<ui::Button*>& buttons,
+                             const std::vector<bool>& rowHovered,
+                             const std::vector<bool>& iconHovered,
+                             int activeRow) {
+        const ui::ControlStateType states[] = {
+            ui::kControlStateNormal,
+            ui::kControlStateHovered,
+            ui::kControlStatePressed
+        };
+        for (size_t i = 0; i < buttons.size(); ++i) {
+            ui::Button* button = buttons[i];
+            if (button == nullptr) {
+                continue;
+            }
+            const bool hovered = (i < rowHovered.size()) && rowHovered[i];
+            const bool iconHover = (i < iconHovered.size()) && iconHovered[i];
+            const bool showPlay = (static_cast<int>(i) == activeRow) || hovered || iconHover;
+            if (showPlay) {
+                const DString image = iconHover
+                    ? _T("file='images/netease/play_black_52.png' width='24' height='24' valign='center' halign='center'")
+                    : _T("file='images/netease/play_lightgray_52.png' width='24' height='24' valign='center' halign='center'");
+                button->SetText(_T(""));
+                for (ui::ControlStateType state : states) {
+                    button->SetStateImage(state, image);
+                }
+            }
+            else {
+                wchar_t number[16] = { 0 };
+                swprintf_s(number, L"%02d", static_cast<int>(i + 1));
+                button->SetText(number);
+                for (ui::ControlStateType state : states) {
+                    button->SetStateImage(state, _T(""));
+                }
+            }
+        }
+    };
+
+    updateList(m_neLocalIndexButtons, m_neLocalRowHovered, m_neLocalIconHovered, m_neLocalActiveRow);
+    updateList(m_neRecentIndexButtons, m_neRecentRowHovered, m_neRecentIconHovered, m_neRecentActiveRow);
 }
 
 void MainForm::AddPlaylistItem(const std::wstring& filePath, size_t index)
@@ -779,6 +1026,9 @@ void MainForm::OnTimer()
             if (m_sliderProgress != nullptr) {
                 m_sliderProgress->SetValueNoEvent(0.0);
             }
+            if (m_neProgress != nullptr) {
+                m_neProgress->SetValueNoEvent(0.0);
+            }
             if (m_lblCurrentTime != nullptr) {
                 m_lblCurrentTime->SetText(_T("00:00"));
             }
@@ -792,6 +1042,10 @@ void MainForm::OnTimer()
             if (!m_seeking && (m_sliderProgress != nullptr)) {
                 const double value = std::clamp(position / duration * 1000.0, 0.0, 1000.0);
                 m_sliderProgress->SetValueNoEvent(value);
+            }
+            if (!m_neSeeking && (m_neProgress != nullptr)) {
+                const double value = std::clamp(position / duration * 1000.0, 0.0, 1000.0);
+                m_neProgress->SetValueNoEvent(value);
             }
             if (m_lblCurrentTime != nullptr) {
                 m_lblCurrentTime->SetText(FormatTime(position).c_str());

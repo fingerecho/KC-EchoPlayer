@@ -1003,4 +1003,29 @@
     <Class name="mc_control_glass" bkcolor="mc_control_bg" bkcolor2="mc_control_bg2" bkcolor2_direction="1" mouse_enabled="false"/>
     <Class name="mc_control_content" padding="24,0,24,0"/>
 
+    <!-- 网易V2版界面样式 -->
+    <Class name="ne_primary_btn" width="120" height="38" border_round="8,8" font="system_bold_14"
+           text_align="vcenter,left" text_padding="34,0,8,0"
+           normal_text_color="#FFFFFFFF"
+           normal_color="#FFF53B4B" hovered_color="#FFE53040" pressed_color="#FFD82131"
+           normal_image="file='images/netease/play_52.png' width='18' height='18' halign='left' margin='12,0,0,0' valign='center'"
+           hovered_image="file='images/netease/play_52.png' width='18' height='18' halign='left' margin='12,0,0,0' valign='center'"
+           pressed_image="file='images/netease/play_52.png' width='18' height='18' halign='left' margin='12,0,0,0' valign='center'"/>
+    <Class name="ne_secondary_btn" width="120" height="38" border_round="8,8" font="system_bold_14"
+           text_align="vcenter,left" text_padding="34,0,8,0"
+           normal_text_color="#FF4D4D58"
+           normal_color="#FFF0F0F3" hovered_color="#FFE6E6EB" pressed_color="#FFDDDDE4"
+           normal_image="file='images/netease/04_star_gray.png' width='18' height='18' halign='left' margin='12,0,0,0' valign='center'"
+           hovered_image="file='images/netease/04_star_gray.png' width='18' height='18' halign='left' margin='12,0,0,0' valign='center'"
+           pressed_image="file='images/netease/04_star_gray.png' width='18' height='18' halign='left' margin='12,0,0,0' valign='center'"/>
+    <Class name="ne_index_btn" width="36" height="36" valign="center" font="system_regular_13"
+           text_align="hcenter,vcenter" normal_text_color="#FFB0B0BC"
+           hovered_text_color="#FF777783" pressed_text_color="#FF777783"
+           normal_color="#00FFFFFF" hovered_color="#00FFFFFF" pressed_color="#00FFFFFF"/>
+    <Class name="ne_progress_slider" horizontal="true" width="stretch" height="4" min="0" max="1000"
+           progress_color="#FFF53B4B" bkcolor="#FFE3E3E9" border_round="0,0" progress_radius="0"
+           thumb_size="0,0"/>
+    <Class name="ne_progress_tip" width="120" height="24" bkcolor="#E6202026" border_round="4,4"
+           font="system_regular_12" normal_text_color="#FFFFFFFF" text_align="hcenter,vcenter"/>
+
 </Global>
