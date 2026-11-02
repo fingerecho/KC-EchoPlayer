@@ -13,6 +13,7 @@
                 <Label class="mc_title_text" text="媒体中心"/>
             </HBox>
             <Control width="stretch" height="stretch" mouse_enabled="false"/>
+            <Button class="mc_win_btn" name="btn_select_version" text="版本选择" width="76" margin="0,0,6,0"/>
             <HBox valign="center" width="auto" child_margin="6">
                 <Button class="mc_win_btn" name="btn_window_theme" text="主题"/>
                 <Button class="mc_win_btn" name="btn_window_min" text="—"/>

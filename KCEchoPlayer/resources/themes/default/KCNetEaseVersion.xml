@@ -1,0 +1,461 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 网易V2版界面：本地音乐 / 最近播放 / 我的收藏 / 设置 + 播放页 -->
+<Window size="1280,800" min_size="1024,640" caption="0,0,0,56"
+        round_corner="14,14" size_box="4,4,4,4"
+        shadow_type="none_round" shadow_attached="true"
+        shadow_border_round="14,14" shadow_border_size="0">
+
+    <!-- ===================== 网易V2版局部样式 ===================== -->
+    <Class name="ne_nav_item" width="stretch" height="40" border_round="8,8" padding="14,0,14,0"
+           text_padding="34,0,0,0" font="system_regular_15" normal_text_color="#FF4C4C57"
+           hovered_text_color="#FF1F1F24" selected_normal_text_color="#FFFFFFFF"
+           selected_hovered_text_color="#FFFFFFFF" selected_pressed_text_color="#FFFFFFFF"
+           normal_color="#00000000" hovered_color="#FFEAEAF2"
+           selected_normal_color="#FFF53B4B" selected_hovered_color="#FFF53B4B"
+           selected_pressed_color="#FFF53B4B" text_align="vcenter,left"/>
+    <Class name="ne_section_title" font="system_bold_13" normal_text_color="#FF9A9AA8" text_align="vcenter"/>
+    <Class name="ne_page" width="stretch" height="stretch" bkcolor="#FFFFFFFF" padding="32,24,32,10"/>
+    <Class name="ne_solid_page" width="stretch" height="stretch"/>
+    <Class name="ne_title" font="system_bold_22" normal_text_color="#FF202026" text_align="vcenter"/>
+    <Class name="ne_sub" font="system_regular_13" normal_text_color="#FF8A8A97" text_align="vcenter"/>
+    <Class name="ne_body" font="system_regular_14" normal_text_color="#FF4D4D58" text_align="vcenter"/>
+    <Class name="ne_muted" font="system_regular_12" normal_text_color="#FFA5A5B2" text_align="vcenter"/>
+    <Class name="ne_primary_btn" width="120" height="38" border_round="19,19" font="system_bold_14"
+           text_align="hcenter,vcenter" normal_text_color="#FFFFFFFF"
+           normal_color="#FFF53B4B" hovered_color="#FFE53040" pressed_color="#FFD82131"/>
+    <Class name="ne_round_btn" width="38" height="38" border_round="19,19" font="system_regular_15"
+           text_align="hcenter,vcenter" normal_text_color="#FF50505C"
+           normal_color="#FFF2F2F6" hovered_color="#FFE7E7EE" pressed_color="#FFDDDDE6"/>
+    <Class name="ne_ghost_btn" width="auto" height="30" padding="10,0,10,0" border_round="15,15"
+           font="system_regular_13" text_align="hcenter,vcenter" normal_text_color="#FF666672"
+           normal_color="#00FFFFFF" hovered_text_color="#FFF53B4B" hovered_color="#FFFFF0F1"/>
+    <Class name="ne_link_btn" width="auto" height="30" padding="8,0,8,0" font="system_regular_13"
+           text_align="hcenter,vcenter" normal_text_color="#FF4C6FFF" hovered_text_color="#FF1F49FF"/>
+    <Class name="ne_list" bkcolor="#00FFFFFF" vscrollbar="true"/>
+    <Class name="ne_list_row" height="58" border_round="6,6"
+           hovered_color="#FFF4F4F8" selected_normal_color="#FFEDEDF3" fade_hovered="false"/>
+    <Class name="ne_list_header" height="34" bkcolor="#FFF7F7FA" border_round="4,4"/>
+    <Class name="ne_song_title" font="system_regular_15" normal_text_color="#FF222228" text_align="vcenter"/>
+    <Class name="ne_song_title_red" font="system_regular_15" normal_text_color="#FFF53B4B" text_align="vcenter"/>
+    <Class name="ne_song_artist" font="system_regular_12" normal_text_color="#FF8A8A97" text_align="vcenter"/>
+    <Class name="ne_song_artist_red" font="system_regular_12" normal_text_color="#FFF53B4B" text_align="vcenter"/>
+    <Class name="ne_col" font="system_regular_13" normal_text_color="#FF777783" text_align="vcenter"/>
+    <Class name="ne_col_light" font="system_regular_13" normal_text_color="#FFB0B0BC" text_align="vcenter"/>
+    <Class name="ne_cover_small" border_round="6,6" bkcolor="#FFF53B4B"/>
+    <Class name="ne_tag_tab" width="auto" height="34" padding="12,0,12,0" border_round="17,17"
+           font="system_regular_13" normal_text_color="#FF666672" normal_color="#00FFFFFF"
+           hovered_color="#FFF4F4F8" selected_normal_text_color="#FF1F1F24"
+           selected_normal_color="#FFEFEFF4" text_align="hcenter,vcenter"/>
+    <Class name="ne_play_round" width="52" height="52" border_round="26,26"
+           normal_color="#FFF53B4B" hovered_color="#FFE53040" pressed_color="#FFD82131"/>
+    <Class name="ne_media_btn" width="52" height="52" border_round="26,26"
+           normal_color="#00FFFFFF" hovered_color="#14F53B4B" pressed_color="#22F53B4B"/>
+    <Class name="ne_bottom_icon" width="34" height="34" border_round="17,17" font="system_regular_16"
+           text_align="hcenter,vcenter" normal_text_color="#FF3E3E49"
+           hovered_text_color="#FFF53B4B" hovered_color="#FFF4F4F8" pressed_color="#FFEDEDF3"/>
+    <Class name="ne_bottom_cover" width="56" height="56" border_round="28,28" font="system_bold_20"
+           text_align="hcenter,vcenter" normal_text_color="#FFFFFFFF"
+           normal_color="#FF3C3C48" hovered_color="#FF50505E" pressed_color="#FF2E2E38"/>
+    <Class name="ne_chip" width="auto" height="26" padding="9,0,9,0" border_round="13,13"
+           border_size="1" border_color="#FFD7D7E0" font="system_regular_12"
+           text_align="hcenter,vcenter" normal_text_color="#FF6B6B78"
+           normal_color="#00FFFFFF" hovered_color="#FFF4F4F8"/>
+    <Class name="ne_player_icon" width="42" height="42" border_round="21,21" font="system_regular_16"
+           text_align="hcenter,vcenter" normal_text_color="#FFDADAE6"
+           normal_color="#00FFFFFF" hovered_color="#FF35353F" pressed_color="#FF2A2A34"/>
+    <Class name="ne_player_back" width="50" height="50" border_round="25,25" font="system_bold_18"
+           text_align="hcenter,vcenter" normal_text_color="#FFFFFFFF"
+           normal_color="#FF35353F" hovered_color="#FF474752" pressed_color="#FF2A2A34"/>
+    <Class name="ne_player_title" font="system_bold_22" normal_text_color="#FFFFFFFF" text_align="vcenter"/>
+    <Class name="ne_player_sub" font="system_regular_14" normal_text_color="#FFAFAFBE" text_align="vcenter"/>
+    <Class name="ne_player_lyric" font="system_regular_16" normal_text_color="#FF8F8F9E" text_align="vcenter"/>
+    <Class name="ne_record_outer" bkcolor="#FF15151B" border_round="210,210"/>
+    <Class name="ne_record_inner" bkcolor="#FF353540" border_round="155,155"/>
+    <Class name="ne_record_center" bkcolor="#FFB35A3C" border_round="105,105"/>
+    <Class name="ne_player_slider" horizontal="true" width="stretch" height="4" min="0" max="1000"
+           progress_color="#FFF53B4B" bkcolor="#FF3A3A45" border_round="2,2" progress_radius="2"
+           thumb_size="10,10"
+           thumb_normal_image="file='${PATH_SLIDER}/slider_thumb.svg' width='10' height='10'"
+           thumb_hovered_image="file='${PATH_SLIDER}/slider_thumb_hovered.svg' width='10' height='10'"
+           thumb_pressed_image="file='${PATH_SLIDER}/slider_thumb_pressed.svg' width='10' height='10'"/>
+
+    <VBox bkcolor="#FFF8F8FB" width="stretch" height="stretch"
+          border_size="1" border_round="14,14" border_color="#FFE6E6EE">
+
+        <!-- ===================== 标题栏：与 KCEchoPlayerMain 排版一致 ===================== -->
+        <HBox name="window_title_bar" height="56" bkcolor="#FFFFFFFF" padding="20,0,16,0">
+            <HBox valign="center" width="auto" margin="0,15,0,0">
+                <Control width="24" height="24" border_round="12,12" bkcolor="#FFF53B4B" margin="0,0,10,0"/>
+                <Label class="mc_title_text" text="克铖云音乐"/>
+            </HBox>
+            <Control width="stretch" height="stretch" mouse_enabled="false"/>
+            <Button class="mc_win_btn" name="btn_select_version" text="版本选择" width="76" margin="0,0,6,0"/>
+            <HBox valign="center" width="auto" child_margin="6">
+                <Button class="mc_win_btn" name="btn_window_min" text="—"/>
+                <Button class="mc_win_btn" name="btn_window_max" text="□"/>
+                <Button class="mc_win_btn" name="btn_window_restore" text="❐" visible="false"/>
+                <Button class="mc_win_btn" name="btn_window_close" text="✕"/>
+            </HBox>
+        </HBox>
+
+        <!-- ===================== 正常浏览界面 ===================== -->
+        <VBox name="ne_body_normal" width="stretch" height="stretch">
+            <HBox width="stretch" height="stretch">
+                <!-- 左侧菜单 -->
+                <VBox width="210" height="stretch" bkcolor="#FFF5F5F8" padding="14,18,14,12" child_margin="6">
+                    <Label class="ne_section_title" text="音乐库" height="28" margin="12,0,0,4"/>
+                    <Option name="nav_local" class="ne_nav_item" group="ne_nav" selected="true" text="本地音乐"
+                            normal_image="file='images/netease/06_music_box_gray.png' width='16' height='16' valign='center'"
+                            selected_normal_image="file='images/netease/06_music_box_white.png' width='16' height='16' valign='center'"/>
+                    <Option name="nav_recent" class="ne_nav_item" group="ne_nav" text="最近播放"
+                            normal_image="file='images/netease/02_circle_l_gray.png' width='16' height='16' valign='center'"
+                            selected_normal_image="file='images/netease/02_circle_l_white.png' width='16' height='16' valign='center'"/>
+                    <Option name="nav_favorite" class="ne_nav_item" group="ne_nav" text="我的收藏"
+                            normal_image="file='images/netease/04_star_gray.png' width='16' height='16' valign='center'"
+                            selected_normal_image="file='images/netease/04_star_white.png' width='16' height='16' valign='center'"/>
+                    <Option name="nav_settings" class="ne_nav_item" group="ne_nav" text="设置"
+                            normal_image="file='images/netease/08_settings_gray.png' width='16' height='16' valign='center'"
+                            selected_normal_image="file='images/netease/08_settings_white.png' width='16' height='16' valign='center'"/>
+                    <Control width="stretch" height="stretch" mouse_enabled="false"/>
+                </VBox>
+                <Control width="1" height="stretch" bkcolor="#FFE9E9EF" mouse_enabled="false"/>
+
+                <!-- 右侧内容区 -->
+                <VBox width="stretch" height="stretch" bkcolor="#FFFFFFFF">
+                    <!-- 本地音乐 -->
+                    <VBox name="ne_page_local" class="ne_page">
+                        <HBox height="46" valign="center" child_margin="10">
+                            <Label class="ne_title" text="本地音乐"/>
+                            <Label class="ne_sub" text="共 3 首"/>
+                            <Control width="stretch" height="stretch" mouse_enabled="false"/>
+                            <Button class="ne_link_btn" text="选择目录 &gt;"/>
+                        </HBox>
+
+                        <HBox height="48" valign="center" child_margin="10">
+                            <Button class="ne_primary_btn" text="▶  播放全部"/>
+                            <Button class="ne_round_btn" text="↻"/>
+                            <Button class="ne_round_btn" text="..."/>
+                            <Control width="stretch" height="stretch" mouse_enabled="false"/>
+                            <SearchBox class="search_box" width="220" height="34" prompt_text="搜索本地音乐"/>
+                            <HBox valign="center" child_margin="2">
+                                <Button class="ne_tag_tab" text="默认"/>
+                                <Button class="ne_tag_tab" text="歌手"/>
+                                <Button class="ne_tag_tab" text="专辑"/>
+                                <Button class="ne_tag_tab" text="文件夹"/>
+                            </HBox>
+                        </HBox>
+
+                        <HBox class="ne_list_header" width="stretch" padding="13,0,13,0" child_margin="10" valign="center">
+                            <Label class="ne_col_light" text="#" width="36"/>
+                            <Label class="ne_col" text="标题" width="stretch"/>
+                            <Label class="ne_col" text="专辑" width="210"/>
+                            <Label class="ne_col" text="时长" width="80"/>
+                            <Label class="ne_col" text="大小" width="80"/>
+                        </HBox>
+
+                        <VListBox name="ne_local_list" class="ne_list" width="stretch" height="stretch" margin="0,6,0,0">
+                            <ListBoxItem class="ne_list_row" height="58">
+                                <HBox padding="13,0,13,0" height="stretch" valign="center" child_margin="10">
+                                    <Label class="ne_col_light" text="▶" width="36"/>
+                                    <VBox width="stretch" height="stretch" valign="center" child_margin="1">
+                                        <Label class="ne_song_title_red" text="岁月"/>
+                                        <Label class="ne_song_artist_red" text="王菲 / 那英"/>
+                                    </VBox>
+                                    <Label class="ne_col" text="岁月" width="210"/>
+                                    <Label class="ne_col" text="04:45" width="80"/>
+                                    <Label class="ne_col" text="10.9M" width="80"/>
+                                </HBox>
+                            </ListBoxItem>
+                            <ListBoxItem class="ne_list_row" height="58">
+                                <HBox padding="13,0,13,0" height="stretch" valign="center" child_margin="10">
+                                    <Label class="ne_col_light" text="02" width="36"/>
+                                    <VBox width="stretch" height="stretch" valign="center" child_margin="1">
+                                        <Label class="ne_song_title" text="如愿 - 王菲"/>
+                                        <Label class="ne_song_artist" text="王菲"/>
+                                    </VBox>
+                                    <Label class="ne_col" text="未知专辑" width="210"/>
+                                    <Label class="ne_col" text="04:25" width="80"/>
+                                    <Label class="ne_col" text="4.1M" width="80"/>
+                                </HBox>
+                            </ListBoxItem>
+                            <ListBoxItem class="ne_list_row" height="58">
+                                <HBox padding="13,0,13,0" height="stretch" valign="center" child_margin="10">
+                                    <Label class="ne_col_light" text="03" width="36"/>
+                                    <VBox width="stretch" height="stretch" valign="center" child_margin="1">
+                                        <Label class="ne_song_title" text="(1785321269)Love Story"/>
+                                        <Label class="ne_song_artist" text="Taylor Swift"/>
+                                    </VBox>
+                                    <Label class="ne_col_light" text="Fearless (Platinum Edition)" width="210"/>
+                                    <Label class="ne_col" text="03:56" width="80"/>
+                                    <Label class="ne_col" text="9.1M" width="80"/>
+                                </HBox>
+                            </ListBoxItem>
+                        </VListBox>
+                    </VBox>
+
+                    <!-- 最近播放 -->
+                    <VBox name="ne_page_recent" class="ne_page" visible="false">
+                        <HBox height="44" valign="center" child_margin="6">
+                            <Button class="ne_tag_tab" text="单曲 11"/>
+                            <Button class="ne_tag_tab" text="播客 0"/>
+                            <Button class="ne_tag_tab" text="有声书 0"/>
+                            <Button class="ne_tag_tab" text="歌单 1"/>
+                            <Button class="ne_tag_tab" text="专辑 0"/>
+                            <Control width="stretch" height="stretch" mouse_enabled="false"/>
+                            <Button class="ne_primary_btn" text="▶  播放全部"/>
+                            <Button class="ne_ghost_btn" text="收藏全部"/>
+                            <Button class="ne_round_btn" text="..."/>
+                        </HBox>
+
+                        <HBox class="ne_list_header" width="stretch" padding="13,0,13,0" child_margin="10" valign="center" margin="0,10,0,0">
+                            <Label class="ne_col_light" text="#" width="36"/>
+                            <Label class="ne_col" text="标题" width="stretch"/>
+                            <Label class="ne_col" text="专辑" width="250"/>
+                            <Label class="ne_col" text="喜欢" width="60"/>
+                            <Label class="ne_col" text="播放时间" width="90"/>
+                        </HBox>
+
+                        <VListBox name="ne_recent_list" class="ne_list" width="stretch" height="stretch" margin="0,6,0,0">
+                            <ListBoxItem class="ne_list_row" height="64">
+                                <HBox padding="13,0,13,0" height="stretch" valign="center" child_margin="10">
+                                    <Label class="ne_col_light" text="01" width="36"/>
+                                    <HBox class="ne_cover_small" width="44" height="44" bkcolor="#FF3D3D4A">
+                                        <Label text="乐" width="stretch" height="stretch" text_align="hcenter,vcenter" normal_text_color="#FFFFFFFF"/>
+                                    </HBox>
+                                    <VBox width="stretch" height="stretch" valign="center" child_margin="1">
+                                        <Label class="ne_song_title" text="岁月"/>
+                                        <Label class="ne_song_artist" text="♫ 王菲 / 那英"/>
+                                    </VBox>
+                                    <Label class="ne_col" text="岁月" width="250"/>
+                                    <Label class="ne_col" text="喜欢" width="60"/>
+                                    <Label class="ne_col" text="49分钟前" width="90"/>
+                                </HBox>
+                            </ListBoxItem>
+                            <ListBoxItem class="ne_list_row" height="64">
+                                <HBox padding="13,0,13,0" height="stretch" valign="center" child_margin="10">
+                                    <Label class="ne_col_light" text="02" width="36"/>
+                                    <HBox class="ne_cover_small" width="44" height="44" bkcolor="#FF47536B">
+                                        <Label text="乐" width="stretch" height="stretch" text_align="hcenter,vcenter" normal_text_color="#FFFFFFFF"/>
+                                    </HBox>
+                                    <VBox width="stretch" height="stretch" valign="center" child_margin="1">
+                                        <Label class="ne_song_title" text="岁月"/>
+                                        <Label class="ne_song_artist" text="♫ 王菲 / 那英"/>
+                                    </VBox>
+                                    <Label class="ne_col" text="岁月" width="250"/>
+                                    <Label class="ne_col" text="喜欢" width="60"/>
+                                    <Label class="ne_col" text="49分钟前" width="90"/>
+                                </HBox>
+                            </ListBoxItem>
+                            <ListBoxItem class="ne_list_row" height="64">
+                                <HBox padding="13,0,13,0" height="stretch" valign="center" child_margin="10">
+                                    <Label class="ne_col_light" text="03" width="36"/>
+                                    <HBox class="ne_cover_small" width="44" height="44" bkcolor="#FF8A6B58">
+                                        <Label text="乐" width="stretch" height="stretch" text_align="hcenter,vcenter" normal_text_color="#FFFFFFFF"/>
+                                    </HBox>
+                                    <VBox width="stretch" height="stretch" valign="center" child_margin="1">
+                                        <Label class="ne_song_title" text="(1785321269)Love Story"/>
+                                        <Label class="ne_song_artist" text="♫ Taylor Swift"/>
+                                    </VBox>
+                                    <Label class="ne_col_light" text="Fearless (Platinum Edition)" width="250"/>
+                                    <Label class="ne_col" text="喜欢" width="60"/>
+                                    <Label class="ne_col" text="53分钟前" width="90"/>
+                                </HBox>
+                            </ListBoxItem>
+                            <ListBoxItem class="ne_list_row" height="64">
+                                <HBox padding="13,0,13,0" height="stretch" valign="center" child_margin="10">
+                                    <Label class="ne_col_light" text="04" width="36"/>
+                                    <HBox class="ne_cover_small" width="44" height="44" bkcolor="#FFB36A4E">
+                                        <Label text="乐" width="stretch" height="stretch" text_align="hcenter,vcenter" normal_text_color="#FFFFFFFF"/>
+                                    </HBox>
+                                    <VBox width="stretch" height="stretch" valign="center" child_margin="1">
+                                        <Label class="ne_song_title" text="黑发尤物"/>
+                                        <Label class="ne_song_artist" text="♫ 蔡依林"/>
+                                    </VBox>
+                                    <Label class="ne_col" text="TAKE 2 MYSELF - Dance with Me" width="250"/>
+                                    <Label class="ne_col" text="喜欢" width="60"/>
+                                    <Label class="ne_col" text="55分钟前" width="90"/>
+                                </HBox>
+                            </ListBoxItem>
+                            <ListBoxItem class="ne_list_row" height="64">
+                                <HBox padding="13,0,13,0" height="stretch" valign="center" child_margin="10">
+                                    <Label class="ne_col_light" text="05" width="36"/>
+                                    <HBox class="ne_cover_small" width="44" height="44" bkcolor="#FF4A6C9B">
+                                        <Label text="乐" width="stretch" height="stretch" text_align="hcenter,vcenter" normal_text_color="#FFFFFFFF"/>
+                                    </HBox>
+                                    <VBox width="stretch" height="stretch" valign="center" child_margin="1">
+                                        <Label class="ne_song_title" text="如愿 - 王菲"/>
+                                        <Label class="ne_song_artist" text="♫ 未知歌手"/>
+                                    </VBox>
+                                    <Label class="ne_col" text="未知专辑" width="250"/>
+                                    <Label class="ne_col" text="喜欢" width="60"/>
+                                    <Label class="ne_col" text="09:01" width="90"/>
+                                </HBox>
+                            </ListBoxItem>
+                            <ListBoxItem class="ne_list_row" height="64">
+                                <HBox padding="13,0,13,0" height="stretch" valign="center" child_margin="10">
+                                    <Label class="ne_col_light" text="06" width="36"/>
+                                    <HBox class="ne_cover_small" width="44" height="44" bkcolor="#FFC45B48">
+                                        <Label text="乐" width="stretch" height="stretch" text_align="hcenter,vcenter" normal_text_color="#FFFFFFFF"/>
+                                    </HBox>
+                                    <VBox width="stretch" height="stretch" valign="center" child_margin="1">
+                                        <Label class="ne_song_title" text="如愿（电影《我和我的父辈》主题推广…"/>
+                                        <Label class="ne_song_artist" text="♫ 王菲"/>
+                                    </VBox>
+                                    <Label class="ne_col" text="如愿" width="250"/>
+                                    <Label class="ne_col" text="喜欢" width="60"/>
+                                    <Label class="ne_col" text="08:41" width="90"/>
+                                </HBox>
+                            </ListBoxItem>
+                            <ListBoxItem class="ne_list_row" height="64">
+                                <HBox padding="13,0,13,0" height="stretch" valign="center" child_margin="10">
+                                    <Label class="ne_col_light" text="07" width="36"/>
+                                    <HBox class="ne_cover_small" width="44" height="44" bkcolor="#FFC06B9D">
+                                        <Label text="乐" width="stretch" height="stretch" text_align="hcenter,vcenter" normal_text_color="#FFFFFFFF"/>
+                                    </HBox>
+                                    <VBox width="stretch" height="stretch" valign="center" child_margin="1">
+                                        <Label class="ne_song_title" text="如愿(原唱：王菲)"/>
+                                        <Label class="ne_song_artist" text="♫ UNNC Choir"/>
+                                    </VBox>
+                                    <Label class="ne_col" text="如愿" width="250"/>
+                                    <Label class="ne_col" text="喜欢" width="60"/>
+                                    <Label class="ne_col" text="08:40" width="90"/>
+                                </HBox>
+                            </ListBoxItem>
+                            <ListBoxItem class="ne_list_row" height="64">
+                                <HBox padding="13,0,13,0" height="stretch" valign="center" child_margin="10">
+                                    <Label class="ne_col_light" text="08" width="36"/>
+                                    <HBox class="ne_cover_small" width="44" height="44" bkcolor="#FF8F6E5B">
+                                        <Label text="乐" width="stretch" height="stretch" text_align="hcenter,vcenter" normal_text_color="#FFFFFFFF"/>
+                                    </HBox>
+                                    <VBox width="stretch" height="stretch" valign="center" child_margin="1">
+                                        <Label class="ne_song_title" text="如愿（粤语版）"/>
+                                        <Label class="ne_song_artist" text="♫ 超清母带 · 伍珂玥 / 季有酒"/>
+                                    </VBox>
+                                    <Label class="ne_col" text="【国庆特辑】如愿（粤语版）" width="250"/>
+                                    <Label class="ne_col" text="喜欢" width="60"/>
+                                    <Label class="ne_col" text="08:40" width="90"/>
+                                </HBox>
+                            </ListBoxItem>
+                            <ListBoxItem class="ne_list_row" height="64">
+                                <HBox padding="13,0,13,0" height="stretch" valign="center" child_margin="10">
+                                    <Label class="ne_col_light" text="09" width="36"/>
+                                    <HBox class="ne_cover_small" width="44" height="44" bkcolor="#FF567B9E">
+                                        <Label text="乐" width="stretch" height="stretch" text_align="hcenter,vcenter" normal_text_color="#FFFFFFFF"/>
+                                    </HBox>
+                                    <VBox width="stretch" height="stretch" valign="center" child_margin="1">
+                                        <Label class="ne_song_title" text="如愿-李健（现场版）"/>
+                                        <Label class="ne_song_artist" text="♫ 李健"/>
+                                    </VBox>
+                                    <Label class="ne_col" text="如愿" width="250"/>
+                                    <Label class="ne_col" text="喜欢" width="60"/>
+                                    <Label class="ne_col" text="40分钟前" width="90"/>
+                                </HBox>
+                            </ListBoxItem>
+                        </VListBox>
+                    </VBox>
+
+                    <!-- 我的收藏：全蓝背景 -->
+                    <VBox name="ne_page_favorite" class="ne_solid_page" visible="false" bkcolor="#FF2F6BFF">
+                        <Label text="我的收藏" width="stretch" height="stretch" text_align="hcenter,vcenter"
+                               font="system_bold_22" normal_text_color="#FFFFFFFF"/>
+                    </VBox>
+
+                    <!-- 设置：全红背景 -->
+                    <VBox name="ne_page_settings" class="ne_solid_page" visible="false" bkcolor="#FFFF3B30">
+                        <Label text="设置" width="stretch" height="stretch" text_align="hcenter,vcenter"
+                               font="system_bold_22" normal_text_color="#FFFFFFFF"/>
+                    </VBox>
+                </VBox>
+            </HBox>
+
+            <!-- ===================== 底部播放控制栏（正常界面） ===================== -->
+            <HBox name="ne_bottom_normal" width="stretch" height="88" bkcolor="#FFFFFFFF"
+                  padding="24,0,24,0" valign="center">
+                <HBox width="240" height="stretch" valign="center" child_margin="12">
+                    <Button name="btn_show_player" class="ne_bottom_cover" text="封面"/>
+                    <VBox width="stretch" height="auto" valign="center" child_margin="2">
+                        <Label class="ne_song_title" text="岁月"/>
+                        <Label class="ne_song_artist" text="王菲 / 那英"/>
+                    </VBox>
+                </HBox>
+                <Control width="stretch" height="stretch" mouse_enabled="false"/>
+                <HBox valign="center" child_margin="24" width="204">
+                    <Button name="btn_ne_prev" class="ne_media_btn"
+                            normal_image="file='images/netease/prev_52.png' width='52' height='52' valign='center' halign='center'"/>
+                    <Button name="btn_ne_play_pause" class="ne_play_round"
+                            normal_image="file='images/netease/play_52.png' width='24' height='24' valign='center' halign='center'"/>
+                    <Button name="btn_ne_next" class="ne_media_btn"
+                            normal_image="file='images/netease/next_52.png' width='52' height='52' valign='center' halign='center'"/>
+                </HBox>
+                <Control width="stretch" height="stretch" mouse_enabled="false"/>
+                <Control width="240" height="stretch" mouse_enabled="false"/>
+            </HBox>
+        </VBox>
+
+        <!-- ===================== 全屏播放界面 ===================== -->
+        <VBox name="ne_body_player" width="stretch" height="stretch" visible="false" bkcolor="#FF202026">
+            <HBox width="stretch" height="stretch" padding="36,18,36,0" child_margin="20">
+                <VBox width="46%" height="stretch">
+                    <HBox height="44" child_margin="10" valign="center">
+                        <Button name="btn_player_back_top" class="ne_player_icon" text="▼"/>
+                        <Control width="stretch" height="stretch" mouse_enabled="false"/>
+                        <Label class="ne_player_sub" text="播放器模式"/>
+                    </HBox>
+                    <Control width="stretch" height="stretch" mouse_enabled="false"/>
+                    <HBox width="420" height="420" class="ne_record_outer" halign="center" valign="center">
+                        <HBox width="310" height="310" class="ne_record_inner" halign="center" valign="center">
+                            <HBox width="210" height="210" class="ne_record_center" halign="center" valign="center">
+                                <Label text="岁月" width="stretch" height="stretch" text_align="hcenter,vcenter"
+                                       font="system_bold_22" normal_text_color="#FFFFFFFF"/>
+                            </HBox>
+                        </HBox>
+                    </HBox>
+                    <Control width="stretch" height="stretch" mouse_enabled="false"/>
+                </VBox>
+
+                <VBox width="54%" height="stretch" padding="20,68,10,0" child_margin="14">
+                    <HBox height="42" valign="center" child_margin="12">
+                        <Label class="ne_player_title" text="岁月"/>
+                        <Button class="ne_chip" text="本地"/>
+                    </HBox>
+                    <Label class="ne_player_sub" text="专辑：岁月     歌手：王菲 / 那英     来源：本地音乐"/>
+                    <Control width="stretch" height="24" mouse_enabled="false"/>
+                    <Label class="ne_player_lyric" text="作词：王菲 / 那英"/>
+                    <Label class="ne_player_lyric" text="作曲：钱雷"/>
+                    <Label class="ne_player_lyric" text="编曲：钱雷"/>
+                    <Label class="ne_player_lyric" text="制作人：钱雷"/>
+                    <Label class="ne_player_lyric" text="编曲：钱雷"/>
+                    <Label class="ne_player_lyric" text="吉他：牛子健"/>
+                    <Label class="ne_player_lyric" text="Bass：李卓"/>
+                    <Control width="stretch" height="stretch" mouse_enabled="false"/>
+                </VBox>
+            </HBox>
+
+            <VBox width="stretch" height="38" padding="30,10,30,0">
+                <Slider name="slider_progress" class="ne_player_slider"/>
+            </VBox>
+
+            <HBox name="ne_bottom_player" width="stretch" height="92" bkcolor="#FF1E1E24"
+                  padding="24,0,24,0" valign="center">
+                <HBox width="240" height="stretch" valign="center" child_margin="12">
+                    <Button name="btn_player_back" class="ne_bottom_cover" text="▼"/>
+                    <VBox width="stretch" height="auto" valign="center" child_margin="2">
+                        <Label class="ne_player_title" text="岁月"/>
+                        <Label class="ne_player_sub" text="王菲 / 那英"/>
+                    </VBox>
+                </HBox>
+                <Control width="stretch" height="stretch" mouse_enabled="false"/>
+                <HBox valign="center" child_margin="24" width="204">
+                    <Button name="btn_ne_prev_player" class="ne_media_btn"
+                            normal_image="file='images/netease/prev_52.png' width='52' height='52' valign='center' halign='center'"/>
+                    <Button name="btn_ne_play_pause_player" class="ne_play_round"
+                            normal_image="file='images/netease/play_52.png' width='24' height='24' valign='center' halign='center'"/>
+                    <Button name="btn_ne_next_player" class="ne_media_btn"
+                            normal_image="file='images/netease/next_52.png' width='52' height='52' valign='center' halign='center'"/>
+                </HBox>
+                <Control width="stretch" height="stretch" mouse_enabled="false"/>
+                <Control width="240" height="stretch" mouse_enabled="false"/>
+            </HBox>
+        </VBox>
+    </VBox>
+</Window>

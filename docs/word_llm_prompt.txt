@@ -27,3 +27,36 @@
 2.优化左侧播放列表，实现功能：正在播放的歌曲采用高亮显示、点击列表中的歌曲能够实现切换到那一首；
 3.结合你已经在用的 BASS 库，实时获取音频的频谱数据（FFT），然后用 GDI+ 把这些数据画成柱状图或波形图并填充到音频可视化区，具体实现步骤：从 BASS 获取频谱数据，利用BASS 提供的BASS_ChannelGetData 函数，配合 BASS_DATA_FFT 系列标志，就能拿到当前播放音频的快速傅里叶变换结果，也就是各频率段的强度。在播放器定时器或更新循环里，对当前播放的流句柄调用这个函数，用 GDI+ 把数据画成图片，拿到 fftData 后，用你之前已经掌握的 GDI+ 方式创建 Bitmap，然后根据数据画柱状图或波形，画完之后，这张 bitmap 既可以按你之前的方法转成 HBITMAP 交给 Duilib项目的音频可视区控件实时显示。需要注意的几个点如下，数据含义：BASS_ChannelGetData 返回的 FFT 数据，默认是幅度值（magnitude），并且 BASS 内部默认已经做了汉宁窗（Hann window）处理来减少频谱泄漏。你直接拿这个值来映射柱子高度即可，不需要自己再做加窗。性能与线程：FFT 获取和 GDI+ 绘图都有一定开销。不要每毫秒都做，建议放在 UI 线程的定时器里，每 50~100 毫秒更新一次画面就够了。如果卡顿，可以考虑把 FFT 计算和绘图放到独立线程，画好后再把 HBITMAP 或 Bitmap 指针安全地传回 UI 线程显示。视觉效果：直接线性映射 fftData 的值，低频柱子可能会很高，高频几乎看不见。可以对数据取对数（log）再做映射，或者对低频和高频做不同的缩放，让频谱图看起来更均衡、好看。
 注意重写代码之后记得帮我生成64位的KCEchoPlayer.exe, 执行路径在 ./x64/Release/KCEchoPlayer.exe，歌曲在系统的“音乐”目录，请编写代码构建生成之后运行这个.exe文件测试成功否。
+
+请编写或者改编这个项目的C++代码和resources/themes/default/KCEchoPlayerMain.xml，创建新的xml界面描述文件，实现以下功能：
+1.在第一界面resources/themes/default/KCEchoPlayerMain.xml右侧顶部标题栏新增一个菜单名字叫做“版本选择”，下拉选择界面版本，默认选中“默认版”，第二选择“网易V2版”，点击“网易V2版”整个界面切换到另一个xml描述文件的界面，xml描述文件名字叫做"KCNetEaseVersion.xml"，并放入resources中的合理的目录下，并在C++代码中增改合理的代码。
+2.KCNetEaseVersion.xml暂时先不需要写界面UI，留一个Helloworld标签在UI界面中即可。
+请增改合理的xml和C++代码实现之。
+注意重写代码之后记得帮我生成64位的KCEchoPlayer.exe, 执行路径在 ./x64/Release/KCEchoPlayer.exe，请编写代码构建生成之后运行这个.exe文件测试新版界面成功否。
+
+请改写resources/themes/default/KCNetEaseVersion.xml这个UI文件以及相应的C++代码，根据上述三张图片生成.xml的UI界面，注意事项：
+１.三张图片分别是netease-01.png、netease-02.png、netease-03.png.
+2.左侧菜单仅仅保留从上到下依次是”本地音乐“、“最近播放”、”我的收藏“、”设置“。
+3.顶部标题栏改成与KCEchoPlayerMain.xml的界面一致的排版。
+4.底部播放控制栏与netease-01.png中的控制栏做成一样的，点击控制栏左侧图标切换到netease-03.png的播放界面，再次点击播放界面的左下角图标则切换到netease-01.png中的界面。
+5.除导航栏外的右侧内容区域：”本地音乐“做成与netease-01.png一致的内容区，”最近播放“做成与netease-02.png一致的内容区，”我的收藏“内容区设置为全蓝背景，”设置“内容区设置为全红背景。
+请增改合理的xml和C++代码实现之。
+注意重写代码之后记得帮我生成64位的KCEchoPlayer.exe, 执行路径在 ./x64/Release/KCEchoPlayer.exe，请编写代码构建生成之后运行这个.exe文件测试新版界面成功否。	
+
+帮我从这张图片中抠几个小图标保留为32X32像素：1.左侧导航栏中“本地音乐”左侧的图标；2.左侧导航栏中”最近播放“左侧的图标；3.左侧导航栏中“我的收藏”左侧的图标；每组图片共2张，一张是“灰色”，一张是纯白色用作鼠标Hover时的图片，总共6张图片，另外帮我仿照这6张图片生成一组同样风格的“设置”图标，也是2张。请给出8张32X32的png图标。
+帮我从上到下抠出这几个小图标保存为24X24像素，每组图标分成两张，一张是“灰色”，一张是纯白色用作鼠标Hover时的图片； 另外帮我仿照这些图片生成一组同样风格同样尺寸的“设置”图标，也是2张。
+帮我生成一个音乐播放器的图标，每组两张，一张是“灰色”，一张是纯白色用作鼠标Hover时的图片；共4组：分别是“本地音乐”、“最近播放”、“我的收藏”、“设置”。
+请参考给出的2张图片帮我生成4张52X52的图片，分别是”上一首“、”下一首“、红色圈内的”播放“按钮、红色圈内的”暂停“按钮，请生成这4个图标。
+
+请改写resources/themes/default/目录下的xml文件以及相应的C++代码，优化下面几点：
+1.两个界面的”版本选择“功能的UI效果做成类似“主题”的UI效果，即点击”版本选择“弹出一个下拉列表选择“默认版”、“网易V2版”，另外，KCNetEaseVersion.xml这个界面不保留“主题”选择功能；
+2.KCNetEaseVersion.xml这个界面的左侧菜单栏优化，鼠标悬停在菜单选项上时hover时的圆角和选中时的红色圆角改小到8px， “本地音乐”左侧图标使用pre-resources/netease-images/06_music_box_gray.png，当"本地音乐“选中时使用pre-resources/netease-images/06_music_box_white.png这个图标，“最近播放”左侧图标使用pre-resources/netease-images/02_circle_l_gray.png，当"最近播放“选中时使用pre-resources/netease-images/02_circle_l_white.png这个图标，“我的收藏”左侧图标使用pre-resources/netease-images/04_star_gray.png，当"我的收藏“选中时使用pre-resources/netease-images/04_star_white.png这个图标，“设置”左侧图标使用pre-resources/netease-images/08_settings_gray.png，当"设置“选中时使用pre-resources/netease-images/08_settings_white.png这个图标。
+3.KCNetEaseVersion.xml这个界面的底部控制栏优化，底部所有内容改成垂直居中，仅仅保留左侧的封面圆圈、圆圈右侧的歌曲名和歌手名、中间红色的播放按钮、红色播放按钮左右的上一首下一首，其余的内容删去；上一首的图标改成pre-resources/netease-images/prev_52.png，下一首的图标改成pre-resources/netease-images/next_52.png,当歌曲没有在播放时红色圈圈中的白色图标使用pre-resources/netease-images/play_52.png，当歌曲正在播放时，红色圈圈中的白色图标使用pre-resources/netease-images/pause_52.png;
+4.pre-resources目录中的图片仅仅作为只读的资源保存在项目中，如果需要拷贝到其它目录请直接拷贝。
+请依序帮我完成上面四项任务。
+
+
+
+
+
+

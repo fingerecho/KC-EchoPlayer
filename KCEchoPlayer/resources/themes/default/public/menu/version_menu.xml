@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window shadow_type="menu_round" shadow_border_size="1" shadow_border_color="border_window">
+    <MenuListBox class="menu" name="version_menu" width="180" padding="0,4,0,4">
+        <MenuItem class="menu_element" name="version_default" text="默认版"/>
+        <MenuItem class="menu_element" name="version_netease_v2" text="网易V2版"/>
+    </MenuListBox>
+</Window>

@@ -57,7 +57,8 @@ std::vector<std::wstring> ShowOpenAudioDialog(HWND owner)
 }
 } // namespace
 
-MainForm::MainForm()
+MainForm::MainForm(Version version) :
+    m_version(version)
 {
 }
 
@@ -80,6 +81,9 @@ DString MainForm::GetSkinFolder()
 
 DString MainForm::GetSkinFile()
 {
+    if (m_version == Version::kNetEaseV2) {
+        return _T("KCNetEaseVersion.xml");
+    }
     return _T("KCEchoPlayerMain.xml");
 }
 
@@ -105,6 +109,19 @@ void MainForm::OnInitWindow()
     m_media_lbl_now_playing = dynamic_cast<ui::Label*>(FindControl(_T("media_lbl_now_playing")));
     m_mediaDisplay = FindControl(_T("media_display"));
     m_visual = dynamic_cast<ui::BitmapControl*>(FindControl(_T("visual_display")));
+
+    m_btnSelectVersion = dynamic_cast<ui::Button*>(FindControl(_T("btn_select_version")));
+    if (m_btnSelectVersion != nullptr) {
+        m_btnSelectVersion->AttachClick([this](const ui::EventArgs& /*args*/) {
+            OnSelectVersionMenu();
+            return true;
+            });
+    }
+
+    m_isNetEase = (m_version == Version::kNetEaseV2);
+    if (m_isNetEase) {
+        InitNetEaseUi();
+    }
 
     const uint32_t labelTextStyle = ui::TEXT_LEFT | ui::TEXT_VCENTER | ui::TEXT_END_ELLIPSIS |
                                     ui::TEXT_NOCLIP | ui::TEXT_SINGLELINE;
@@ -257,6 +274,203 @@ void MainForm::OnOpenFile()
 
     // 打开后自动播放本轮添加的第一首
     PlayIndex(startIndex);
+}
+
+void MainForm::OnVersionSelected(size_t index)
+{
+    Version version = Version::kDefault;
+    if (index == 1) {
+        version = Version::kNetEaseV2;
+    }
+    if (version == m_version) {
+        return;
+    }
+    SwitchVersion(version);
+}
+
+void MainForm::SwitchVersion(Version version)
+{
+    ui::UiRect windowRect;
+    GetWindowRect(windowRect);
+
+    MainForm* newWindow = new MainForm(version);
+    ui::WindowCreateParam createParam(_T("KCEchoPlayer"));
+    createParam.m_bCenterWindow = false;
+    createParam.m_nX = windowRect.left;
+    createParam.m_nY = windowRect.top;
+    createParam.m_nWidth = windowRect.Width();
+    createParam.m_nHeight = windowRect.Height();
+    if (!newWindow->CreateWnd(nullptr, createParam)) {
+        delete newWindow;
+        return;
+    }
+
+    newWindow->PostQuitMsgWhenClosed(true);
+    newWindow->ShowWindow(ui::kSW_SHOW_NORMAL);
+
+    PostQuitMsgWhenClosed(false);
+    CloseWnd();
+}
+
+void MainForm::OnSelectVersionMenu()
+{
+    if (m_btnSelectVersion == nullptr) {
+        return;
+    }
+
+    ui::UiRect rect = m_btnSelectVersion->GetPos();
+    ui::UiPoint point(rect.left, rect.bottom + 4);
+    ClientToScreen(point);
+
+    ui::Menu* menu = new ui::Menu(this, m_btnSelectVersion);
+    menu->SetSkinFolder(_T("public/menu"));
+    menu->AttachMenuItemActivated([this](const DString& /*menuName*/, int32_t /*nMenuLevel*/,
+                                         const DString& itemName, size_t /*nItemIndex*/) {
+        if (itemName == _T("version_default")) {
+            OnVersionSelected(0);
+        }
+        else if (itemName == _T("version_netease_v2")) {
+            OnVersionSelected(1);
+        }
+        });
+    menu->ShowMenu(_T("version_menu.xml"), point, ui::MenuPopupPosType::LEFT_TOP);
+}
+
+void MainForm::InitNetEaseUi()
+{
+    m_neBodyNormal = FindControl(_T("ne_body_normal"));
+    m_neBodyPlayer = FindControl(_T("ne_body_player"));
+    m_nePageLocal = FindControl(_T("ne_page_local"));
+    m_nePageRecent = FindControl(_T("ne_page_recent"));
+    m_nePageFavorite = FindControl(_T("ne_page_favorite"));
+    m_nePageSettings = FindControl(_T("ne_page_settings"));
+    m_neNavLocal = dynamic_cast<ui::Option*>(FindControl(_T("nav_local")));
+
+    auto bindNav = [this](const DString& name, ui::Control* page) {
+        ui::Option* nav = dynamic_cast<ui::Option*>(FindControl(name));
+        if (nav != nullptr) {
+            nav->AttachSelect([this, page](const ui::EventArgs& /*args*/) {
+                ShowNetEasePage(page);
+                return true;
+                });
+        }
+    };
+    bindNav(_T("nav_local"), m_nePageLocal);
+    bindNav(_T("nav_recent"), m_nePageRecent);
+    bindNav(_T("nav_favorite"), m_nePageFavorite);
+    bindNav(_T("nav_settings"), m_nePageSettings);
+
+    m_neBtnShowPlayer = dynamic_cast<ui::Button*>(FindControl(_T("btn_show_player")));
+    if (m_neBtnShowPlayer != nullptr) {
+        m_neBtnShowPlayer->AttachClick([this](const ui::EventArgs& /*args*/) {
+            ShowNetEasePlayer(true);
+            return true;
+            });
+    }
+    m_neBtnPlayerBack = dynamic_cast<ui::Button*>(FindControl(_T("btn_player_back")));
+    if (m_neBtnPlayerBack != nullptr) {
+        m_neBtnPlayerBack->AttachClick([this](const ui::EventArgs& /*args*/) {
+            ShowNetEasePlayer(false);
+            return true;
+            });
+    }
+    m_neBtnPlayerBackTop = dynamic_cast<ui::Button*>(FindControl(_T("btn_player_back_top")));
+    if (m_neBtnPlayerBackTop != nullptr) {
+        m_neBtnPlayerBackTop->AttachClick([this](const ui::EventArgs& /*args*/) {
+            ShowNetEasePlayer(false);
+            return true;
+            });
+    }
+
+    auto bindAction = [this](const DString& name, void (MainForm::*action)()) {
+        ui::Button* button = dynamic_cast<ui::Button*>(FindControl(name));
+        if (button != nullptr) {
+            button->AttachClick([this, action](const ui::EventArgs& /*args*/) {
+                (this->*action)();
+                return true;
+                });
+        }
+    };
+    bindAction(_T("btn_ne_prev"), &MainForm::PlayPrevious);
+    bindAction(_T("btn_ne_next"), &MainForm::PlayNext);
+    bindAction(_T("btn_ne_prev_player"), &MainForm::PlayPrevious);
+    bindAction(_T("btn_ne_next_player"), &MainForm::PlayNext);
+
+    m_nePlayPauseNormal = dynamic_cast<ui::Button*>(FindControl(_T("btn_ne_play_pause")));
+    m_nePlayPausePlayer = dynamic_cast<ui::Button*>(FindControl(_T("btn_ne_play_pause_player")));
+    auto bindPlayPause = [this](ui::Button* button) {
+        if (button != nullptr) {
+            button->AttachClick([this](const ui::EventArgs& /*args*/) {
+                ToggleNetEasePlayback();
+                return true;
+                });
+        }
+    };
+    bindPlayPause(m_nePlayPauseNormal);
+    bindPlayPause(m_nePlayPausePlayer);
+    UpdateNetEasePlayButton();
+}
+
+void MainForm::ShowNetEasePage(ui::Control* page)
+{
+    if (!m_isNetEase) {
+        return;
+    }
+    ui::Control* pages[] = { m_nePageLocal, m_nePageRecent, m_nePageFavorite, m_nePageSettings };
+    for (ui::Control* item : pages) {
+        if (item != nullptr) {
+            item->SetVisible(item == page);
+        }
+    }
+}
+
+void MainForm::ShowNetEasePlayer(bool show)
+{
+    if (!m_isNetEase) {
+        return;
+    }
+    if (m_neBodyNormal != nullptr) {
+        m_neBodyNormal->SetVisible(!show);
+    }
+    if (m_neBodyPlayer != nullptr) {
+        m_neBodyPlayer->SetVisible(show);
+    }
+    if (!show) {
+        ShowNetEasePage(m_nePageLocal);
+        if (m_neNavLocal != nullptr) {
+            m_neNavLocal->Selected(true, false);
+        }
+    }
+    UpdateNetEasePlayButton();
+}
+
+void MainForm::ToggleNetEasePlayback()
+{
+    if (m_player.IsPlaying()) {
+        PauseCurrent();
+    }
+    else {
+        PlayCurrent();
+    }
+    UpdateNetEasePlayButton();
+}
+
+void MainForm::UpdateNetEasePlayButton()
+{
+    const DString image = m_player.IsPlaying()
+        ? _T("file='images/netease/pause_52.png' width='24' height='24' valign='center' halign='center'")
+        : _T("file='images/netease/play_52.png' width='24' height='24' valign='center' halign='center'");
+
+    auto updateButton = [&image](ui::Button* button) {
+        if (button == nullptr) {
+            return;
+        }
+        button->SetStateImage(ui::kControlStateNormal, image);
+        button->SetStateImage(ui::kControlStateHovered, image);
+        button->SetStateImage(ui::kControlStatePressed, image);
+    };
+    updateButton(m_nePlayPauseNormal);
+    updateButton(m_nePlayPausePlayer);
 }
 
 void MainForm::AddPlaylistItem(const std::wstring& filePath, size_t index)
@@ -597,6 +811,9 @@ void MainForm::OnTimer()
     }
     UpdateMuteButton();
     UpdateVisualization();
+    if (m_isNetEase) {
+        UpdateNetEasePlayButton();
+    }
 }
 
 std::wstring MainForm::FormatTime(double seconds)

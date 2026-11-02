@@ -14,7 +14,13 @@ class MainForm : public ui::WindowImplBase
 {
     typedef ui::WindowImplBase BaseClass;
 public:
-    MainForm();
+    enum class Version
+    {
+        kDefault = 0,
+        kNetEaseV2 = 1
+    };
+
+    explicit MainForm(Version version = Version::kDefault);
     virtual ~MainForm() override;
 
     /** 资源相关接口
@@ -41,6 +47,14 @@ private:
     };
 
     void OnOpenFile();
+    void OnSelectVersionMenu();
+    void OnVersionSelected(size_t index);
+    void SwitchVersion(Version version);
+    void InitNetEaseUi();
+    void ShowNetEasePage(ui::Control* page);
+    void ShowNetEasePlayer(bool show);
+    void ToggleNetEasePlayback();
+    void UpdateNetEasePlayButton();
     void AddPlaylistItem(const std::wstring& filePath, size_t index);
     void PlayIndex(size_t index);
     void PlayCurrent();
@@ -59,6 +73,23 @@ private:
     static std::wstring FileNameOf(const std::wstring& filePath);
 
 private:
+    Version m_version = Version::kDefault;
+    ui::Button* m_btnSelectVersion = nullptr;
+
+    bool m_isNetEase = false;
+    ui::Control* m_neBodyNormal = nullptr;
+    ui::Control* m_neBodyPlayer = nullptr;
+    ui::Control* m_nePageLocal = nullptr;
+    ui::Control* m_nePageRecent = nullptr;
+    ui::Control* m_nePageFavorite = nullptr;
+    ui::Control* m_nePageSettings = nullptr;
+    ui::Option* m_neNavLocal = nullptr;
+    ui::Button* m_neBtnShowPlayer = nullptr;
+    ui::Button* m_neBtnPlayerBack = nullptr;
+    ui::Button* m_neBtnPlayerBackTop = nullptr;
+    ui::Button* m_nePlayPauseNormal = nullptr;
+    ui::Button* m_nePlayPausePlayer = nullptr;
+
     ui::VListBox* m_playlistBox = nullptr;
     ui::Button* m_btnOpen = nullptr;
     ui::Button* m_btnPlay = nullptr;

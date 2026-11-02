@@ -3,5 +3,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="KCEchoPlayer.vcxproj" />
+  <Project Path="KCEchoPlayer.vcxproj" Id="af293117-49a2-451c-8b97-f7e195fd77f4" />
 </Solution>
