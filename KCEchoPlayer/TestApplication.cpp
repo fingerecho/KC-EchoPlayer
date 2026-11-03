@@ -4,7 +4,7 @@
 
 TestApplication::TestApplication()
 {
-    WriteLog(L"我是方克铖TestApplication...");
+//    WriteLog(L"我是方克铖TestApplication...");
 }
 
 TestApplication::~TestApplication()

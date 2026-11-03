@@ -85,7 +85,11 @@
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
     </Manifest>
-  </ItemDefinitionGroup>
+      <PostBuildEvent>
+      <Command>if not exist "$(TargetDir)resources\db" mkdir "$(TargetDir)resources\db"
+copy /Y "$(ProjectDir)db\KCEchoPlayer.db" "$(TargetDir)resources\db\KCEchoPlayer.db"</Command>
+    </PostBuildEvent>
+</ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -103,7 +107,11 @@
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
     </Manifest>
-  </ItemDefinitionGroup>
+      <PostBuildEvent>
+      <Command>if not exist "$(TargetDir)resources\db" mkdir "$(TargetDir)resources\db"
+copy /Y "$(ProjectDir)db\KCEchoPlayer.db" "$(TargetDir)resources\db\KCEchoPlayer.db"</Command>
+    </PostBuildEvent>
+</ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -119,7 +127,11 @@
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
     </Manifest>
-  </ItemDefinitionGroup>
+      <PostBuildEvent>
+      <Command>if not exist "$(TargetDir)resources\db" mkdir "$(TargetDir)resources\db"
+copy /Y "$(ProjectDir)db\KCEchoPlayer.db" "$(TargetDir)resources\db\KCEchoPlayer.db"</Command>
+    </PostBuildEvent>
+</ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -132,12 +144,13 @@
       <AdditionalIncludeDirectories>$(ProjectDir)/include;$(ProjectDir)/include/duilib;$(ProjectDir)/include/skia;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)/lib/duilib/Windows/x64;$(ProjectDir)/lib/BASS/Windows/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>duilib.lib;libpng.lib;libwebp.lib;zlib.lib;cximage.lib;turbojpeg-static.lib;skia.lib;svg.lib;skshaper.lib;skottie.lib;sksg.lib;jsonreader.lib;opengl32.lib;Imm32.lib;comctl32.lib;shlwapi.lib;bass.lib;ole32.lib;comdlg32.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>duilib.lib;libpng.lib;libwebp.lib;zlib.lib;cximage.lib;turbojpeg-static.lib;skia.lib;svg.lib;skshaper.lib;skottie.lib;sksg.lib;jsonreader.lib;opengl32.lib;Imm32.lib;comctl32.lib;shlwapi.lib;bass.lib;ole32.lib;comdlg32.lib;gdiplus.lib;shell32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
@@ -145,11 +158,14 @@
     <PostBuildEvent>
       <Command>xcopy /E /I /Y /D "$(ProjectDir)resources" "$(TargetDir)resources"
 xcopy /E /I /Y /D "$(ProjectDir)pre-resources\images" "$(TargetDir)resources\themes\default\images"
-copy /Y "$(ProjectDir)lib\BASS\Windows\x64\bass.dll" "$(TargetDir)bass.dll"</Command>
+copy /Y "$(ProjectDir)lib\BASS\Windows\x64\bass.dll" "$(TargetDir)bass.dll"
+if not exist "$(TargetDir)resources\db" mkdir "$(TargetDir)resources\db"
+copy /Y "$(ProjectDir)db\KCEchoPlayer.db" "$(TargetDir)resources\db\KCEchoPlayer.db"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AudioPlayer.h" />
+    <ClInclude Include="DatabaseMgr.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="logUtils.h" />
     <ClInclude Include="MainForm.h" />
@@ -158,6 +174,11 @@ copy /Y "$(ProjectDir)lib\BASS\Windows\x64\bass.dll" "$(TargetDir)bass.dll"</Com
     <ClInclude Include="SystemVolume.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TestApplication.h" />
+    <ClInclude Include="third-party\sqlite\sqlite3.h" />
+    <ClInclude Include="third-party\sqlite\sqlite3ext.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="db\KCEchoPlayer.db" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="KCEchoPlayer.rc" />
@@ -167,6 +188,7 @@ copy /Y "$(ProjectDir)lib\BASS\Windows\x64\bass.dll" "$(TargetDir)bass.dll"</Com
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AudioPlayer.cpp" />
+    <ClCompile Include="DatabaseMgr.cpp" />
     <ClCompile Include="logUtils.cpp" />
     <ClCompile Include="MainForm.cpp" />
     <ClCompile Include="MainThread.cpp" />
@@ -176,6 +198,7 @@ copy /Y "$(ProjectDir)lib\BASS\Windows\x64\bass.dll" "$(TargetDir)bass.dll"</Com
     <ClCompile Include="main_windows.cpp" />
     <ClCompile Include="SystemVolume.cpp" />
     <ClCompile Include="TestApplication.cpp" />
+    <ClCompile Include="third-party\sqlite\sqlite3.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

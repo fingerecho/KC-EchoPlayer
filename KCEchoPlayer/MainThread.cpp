@@ -52,7 +52,7 @@ bool MainThread::OnInit()
 
     // 创建一个默认带有阴影的居中窗口
     MainForm* window = new MainForm();
-    window->CreateWnd(nullptr, ui::WindowCreateParam(_T("basic"), true));
+    window->CreateWnd(nullptr, ui::WindowCreateParam(_T("克铖多媒体"), true));
     window->PostQuitMsgWhenClosed(true);
     window->ShowWindow(ui::kSW_SHOW_NORMAL);
     // window->ShowWindow(ui::kSW_SHOW_MAXIMIZED);

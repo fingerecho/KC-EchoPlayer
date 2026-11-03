@@ -4,11 +4,18 @@
 
 #include <commdlg.h>
 #include <gdiplus.h>
+#include <shlobj.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <ctime>
+#include <cwctype>
 #include <filesystem>
+#include <fstream>
+#include <iterator>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -55,6 +62,193 @@ std::vector<std::wstring> ShowOpenAudioDialog(HWND owner)
     }
     return files;
 }
+
+bool IsSupportedAudioFile(const std::filesystem::path& path)
+{
+    std::wstring ext = path.extension().wstring();
+    if (ext.empty()) {
+        return false;
+    }
+    if (ext[0] == L'.') {
+        ext.erase(ext.begin());
+    }
+    std::transform(ext.begin(), ext.end(), ext.begin(),
+                   [](wchar_t ch) { return static_cast<wchar_t>(std::towlower(ch)); });
+    static const wchar_t* kExtensions[] = {
+        L"mp3", L"mp2", L"mp1", L"ogg", L"wav", L"aiff", L"aif",
+        L"xm", L"it", L"s3m", L"mod", L"mtm", L"umx", L"mo3"
+    };
+    for (const wchar_t* value : kExtensions) {
+        if (ext == value) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::wstring ShowSelectFolderDialog(HWND owner, const wchar_t* title)
+{
+    BROWSEINFOW browseInfo = {};
+    browseInfo.hwndOwner = owner;
+    browseInfo.lpszTitle = title;
+    browseInfo.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+    LPITEMIDLIST itemIdList = ::SHBrowseForFolderW(&browseInfo);
+    if (itemIdList == nullptr) {
+        return std::wstring();
+    }
+    wchar_t folderPath[MAX_PATH] = { 0 };
+    const bool ok = ::SHGetPathFromIDListW(itemIdList, folderPath) != FALSE;
+    ::CoTaskMemFree(itemIdList);
+    return ok ? std::wstring(folderPath) : std::wstring();
+}
+
+std::vector<std::wstring> ScanAudioFiles(const std::wstring& folder)
+{
+    std::vector<std::wstring> files;
+    std::error_code error;
+    std::filesystem::recursive_directory_iterator iterator(folder, error);
+    const std::filesystem::recursive_directory_iterator end;
+    if (error) {
+        return files;
+    }
+    while (iterator != end) {
+        const std::filesystem::directory_entry& entry = *iterator;
+        std::error_code entryError;
+        if (entry.is_regular_file(entryError) && IsSupportedAudioFile(entry.path())) {
+            files.push_back(entry.path().lexically_normal().wstring());
+        }
+        iterator.increment(error);
+        if (error) {
+            error.clear();
+        }
+    }
+    std::sort(files.begin(), files.end());
+    return files;
+}
+
+int64_t NowEpochSeconds()
+{
+    return static_cast<int64_t>(std::time(nullptr));
+}
+
+std::wstring FormatDateTime(int64_t epochSeconds)
+{
+    if (epochSeconds <= 0) {
+        return L"-";
+    }
+    const std::time_t timeValue = static_cast<std::time_t>(epochSeconds);
+    std::tm localTime = {};
+    localtime_s(&localTime, &timeValue);
+    wchar_t buffer[64] = { 0 };
+    swprintf_s(buffer, L"%04d-%02d-%02d %02d:%02d",
+               localTime.tm_year + 1900, localTime.tm_mon + 1, localTime.tm_mday,
+               localTime.tm_hour, localTime.tm_min);
+    return buffer;
+}
+
+std::wstring FormatRelativeTime(int64_t epochSeconds)
+{
+    if (epochSeconds <= 0) {
+        return L"-";
+    }
+    const int64_t now = NowEpochSeconds();
+    const int64_t diff = now - epochSeconds;
+    if (diff < 60) {
+        return L"刚刚";
+    }
+    if (diff < 3600) {
+        return std::to_wstring(diff / 60) + L"分钟前";
+    }
+    if (diff < 86400) {
+        return std::to_wstring(diff / 3600) + L"小时前";
+    }
+    if (diff < 7 * 86400) {
+        return std::to_wstring(diff / 86400) + L"天前";
+    }
+    return FormatDateTime(epochSeconds);
+}
+
+std::wstring FormatFileSize(int64_t bytes)
+{
+    if (bytes <= 0) {
+        return L"-";
+    }
+    wchar_t buffer[64] = { 0 };
+    if (bytes >= 1024 * 1024) {
+        swprintf_s(buffer, L"%.1fM", static_cast<double>(bytes) / (1024.0 * 1024.0));
+    }
+    else if (bytes >= 1024) {
+        swprintf_s(buffer, L"%.1fK", static_cast<double>(bytes) / 1024.0);
+    }
+    else {
+        swprintf_s(buffer, L"%lldB", static_cast<long long>(bytes));
+    }
+    return buffer;
+}
+
+std::wstring NonEmptyText(const std::wstring& text, const wchar_t* fallback)
+{
+    return text.empty() ? std::wstring(fallback) : text;
+}
+
+std::wstring TrimWideText(const std::wstring& text)
+{
+    size_t begin = 0;
+    size_t end = text.size();
+    while (begin < end && std::iswspace(text[begin]) != 0) {
+        ++begin;
+    }
+    while (end > begin && std::iswspace(text[end - 1]) != 0) {
+        --end;
+    }
+    return text.substr(begin, end - begin);
+}
+
+std::wstring ReadTextFileAutoEncoding(const std::filesystem::path& path)
+{
+    std::ifstream file(path, std::ios::binary);
+    if (!file) {
+        return std::wstring();
+    }
+    std::vector<char> bytes((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    if (bytes.empty()) {
+        return std::wstring();
+    }
+
+    const unsigned char* data = reinterpret_cast<const unsigned char*>(bytes.data());
+    size_t size = bytes.size();
+    if (size >= 2 && data[0] == 0xFF && data[1] == 0xFE) {
+        return std::wstring(reinterpret_cast<const wchar_t*>(data + 2), (size - 2) / sizeof(wchar_t));
+    }
+    if (size >= 2 && data[0] == 0xFE && data[1] == 0xFF) {
+        std::wstring result;
+        result.reserve((size - 2) / sizeof(wchar_t));
+        for (size_t i = 2; i + 1 < size; i += 2) {
+            wchar_t ch = static_cast<wchar_t>((data[i] << 8) | data[i + 1]);
+            result.push_back(ch);
+        }
+        return result;
+    }
+
+    size_t offset = 0;
+    if (size >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF) {
+        offset = 3;
+    }
+    const char* text = reinterpret_cast<const char*>(data + offset);
+    const int textSize = static_cast<int>(size - offset);
+    int wideSize = ::MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text, textSize, nullptr, 0);
+    UINT codePage = CP_UTF8;
+    if (wideSize <= 0) {
+        codePage = CP_ACP;
+        wideSize = ::MultiByteToWideChar(codePage, 0, text, textSize, nullptr, 0);
+    }
+    if (wideSize <= 0) {
+        return std::wstring();
+    }
+    std::wstring result(static_cast<size_t>(wideSize), L'\0');
+    ::MultiByteToWideChar(codePage, 0, text, textSize, result.data(), wideSize);
+    return result;
+}
 } // namespace
 
 MainForm::MainForm(Version version) :
@@ -68,6 +262,7 @@ MainForm::~MainForm()
         ui::GlobalManager::Instance().Thread().CancelTask(m_timerTaskId);
         m_timerTaskId = 0;
     }
+    m_database.Close();
     if (m_gdiplusToken != 0) {
         Gdiplus::GdiplusShutdown(m_gdiplusToken);
         m_gdiplusToken = 0;
@@ -90,6 +285,7 @@ DString MainForm::GetSkinFile()
 void MainForm::OnInitWindow()
 {
     BaseClass::OnInitWindow();
+    InitDatabase();
 
     m_playlistBox = dynamic_cast<ui::VListBox*>(FindControl(_T("playlist")));
     m_btnOpen = dynamic_cast<ui::Button*>(FindControl(_T("btn_open")));
@@ -294,7 +490,7 @@ void MainForm::SwitchVersion(Version version)
     GetWindowRect(windowRect);
 
     MainForm* newWindow = new MainForm(version);
-    ui::WindowCreateParam createParam(_T("KCEchoPlayer"));
+    ui::WindowCreateParam createParam(_T("克铖播放器"));
     createParam.m_bCenterWindow = false;
     createParam.m_nX = windowRect.left;
     createParam.m_nY = windowRect.top;
@@ -411,64 +607,72 @@ void MainForm::InitNetEaseUi()
 
     InitNetEaseProgressBar();
 
-    auto initRows = [this](const DString& hoverPrefix, const DString& indexPrefix, int count,
-                           std::vector<ui::Control*>& rows,
-                           std::vector<ui::Button*>& indexes,
-                           std::vector<bool>& rowHovered,
-                           std::vector<bool>& iconHovered) {
-        rows.assign(count, nullptr);
-        indexes.assign(count, nullptr);
-        rowHovered.assign(count, false);
-        iconHovered.assign(count, false);
-        for (int i = 0; i < count; ++i) {
-            wchar_t suffix[16] = { 0 };
-            swprintf_s(suffix, L"%d", i);
-            DString hoverName = hoverPrefix;
-            hoverName += suffix;
-            DString indexName = indexPrefix;
-            indexName += suffix;
+    m_neLocalList = dynamic_cast<ui::VListBox*>(FindControl(_T("ne_local_list")));
+    m_neRecentList = dynamic_cast<ui::VListBox*>(FindControl(_T("ne_recent_list")));
+    m_neFavoriteList = dynamic_cast<ui::VListBox*>(FindControl(_T("ne_favorite_list")));
+    m_neLocalCount = dynamic_cast<ui::Label*>(FindControl(_T("lbl_local_count")));
+    m_neFavoriteCount = dynamic_cast<ui::Label*>(FindControl(_T("lbl_favorite_count")));
+    m_neChooseDir = dynamic_cast<ui::Button*>(FindControl(_T("btn_choose_dir")));
+    m_neRecentSingleTab = dynamic_cast<ui::Button*>(FindControl(_T("btn_recent_single_tab")));
+    m_neBottomTitle = dynamic_cast<ui::Label*>(FindControl(_T("ne_bottom_title")));
+    m_neBottomArtist = dynamic_cast<ui::Label*>(FindControl(_T("ne_bottom_artist")));
+    m_nePlayerBottomTitle = dynamic_cast<ui::Label*>(FindControl(_T("ne_player_bottom_title")));
+    m_nePlayerBottomArtist = dynamic_cast<ui::Label*>(FindControl(_T("ne_player_bottom_artist")));
+    m_neCheckAutoStart = dynamic_cast<ui::CheckBox*>(FindControl(_T("chk_auto_start")));
+    m_neCheckAutoPlay = dynamic_cast<ui::CheckBox*>(FindControl(_T("chk_auto_play")));
+    m_nePlayerPageTitle = dynamic_cast<ui::Label*>(FindControl(_T("ne_player_page_title")));
+    m_nePlayerPageMeta = dynamic_cast<ui::Label*>(FindControl(_T("ne_player_page_meta")));
 
-            ui::Control* row = FindControl(hoverName);
-            ui::Button* index = dynamic_cast<ui::Button*>(FindControl(indexName));
-            rows[static_cast<size_t>(i)] = row;
-            indexes[static_cast<size_t>(i)] = index;
+    m_lyricLabels.clear();
+    for (int i = 0; i < 9; ++i) {
+        wchar_t name[32] = { 0 };
+        swprintf_s(name, L"ne_lyric_%d", i);
+        m_lyricLabels.push_back(dynamic_cast<ui::Label*>(FindControl(name)));
+    }
 
-            auto* rowHoveredPtr = &rowHovered;
-            auto* iconHoveredPtr = &iconHovered;
-            if (row != nullptr) {
-                row->AttachMouseEnter([this, i, rowHoveredPtr](const ui::EventArgs& /*args*/) {
-                    (*rowHoveredPtr)[static_cast<size_t>(i)] = true;
-                    UpdateNetEaseListIndices();
-                    return true;
-                    });
-                row->AttachMouseLeave([this, i, rowHoveredPtr, iconHoveredPtr](const ui::EventArgs& /*args*/) {
-                    (*rowHoveredPtr)[static_cast<size_t>(i)] = false;
-                    (*iconHoveredPtr)[static_cast<size_t>(i)] = false;
-                    UpdateNetEaseListIndices();
-                    return true;
-                    });
+    if (m_neChooseDir != nullptr) {
+        m_neChooseDir->AttachClick([this](const ui::EventArgs& /*args*/) {
+            ChooseMusicSource();
+            return true;
+            });
+    }
+    if (m_neCheckAutoStart != nullptr) {
+        m_neCheckAutoStart->AttachSelect([this](const ui::EventArgs& /*args*/) {
+            if (m_neCheckAutoStart != nullptr) {
+                SetAutoStart(m_neCheckAutoStart->IsSelected());
             }
-            if (index != nullptr) {
-                index->AttachMouseEnter([this, i, iconHoveredPtr](const ui::EventArgs& /*args*/) {
-                    (*iconHoveredPtr)[static_cast<size_t>(i)] = true;
-                    UpdateNetEaseListIndices();
-                    return true;
-                    });
-                index->AttachMouseLeave([this, i, iconHoveredPtr](const ui::EventArgs& /*args*/) {
-                    (*iconHoveredPtr)[static_cast<size_t>(i)] = false;
-                    UpdateNetEaseListIndices();
-                    return true;
-                    });
+            return true;
+            });
+    }
+    if (m_neCheckAutoPlay != nullptr) {
+        m_neCheckAutoPlay->AttachSelect([this](const ui::EventArgs& /*args*/) {
+            if (m_neCheckAutoPlay != nullptr) {
+                SetAutoPlayOnStartup(m_neCheckAutoPlay->IsSelected());
             }
-        }
-    };
-    initRows(_T("ne_local_hover_"), _T("ne_local_index_"), 3,
-             m_neLocalRows, m_neLocalIndexButtons, m_neLocalRowHovered, m_neLocalIconHovered);
-    initRows(_T("ne_recent_hover_"), _T("ne_recent_index_"), 9,
-             m_neRecentRows, m_neRecentIndexButtons, m_neRecentRowHovered, m_neRecentIconHovered);
+            return true;
+            });
+    }
 
-    UpdateNetEaseListIndices();
+    LoadAppSettings();
+    if (m_neCheckAutoStart != nullptr) {
+        m_neCheckAutoStart->Selected(IsAutoStartEnabled(), false);
+    }
+    if (m_neCheckAutoPlay != nullptr) {
+        m_neCheckAutoPlay->Selected(IsAutoPlayOnStartup(), false);
+    }
+
+    LoadLocalSongs();
+    LoadRecentSongs();
+    LoadFavoriteSongs();
+    RefreshAllNetEaseLists();
+    UpdateNetEaseBottomInfo();
     UpdateNetEasePlayButton();
+
+    static bool startupAutoPlayHandled = false;
+    if (!startupAutoPlayHandled && IsAutoPlayOnStartup() && !m_localSongs.empty()) {
+        startupAutoPlayHandled = true;
+        PlaySong(m_localSongs.front());
+    }
 }
 
 void MainForm::ShowNetEasePage(ui::Control* page)
@@ -528,6 +732,7 @@ void MainForm::UpdateNetEasePlayButton()
         button->SetStateImage(ui::kControlStateNormal, image);
         button->SetStateImage(ui::kControlStateHovered, image);
         button->SetStateImage(ui::kControlStatePressed, image);
+        button->Invalidate();
     };
     updateButton(m_nePlayPauseNormal);
     updateButton(m_nePlayPausePlayer);
@@ -718,6 +923,1068 @@ void MainForm::UpdateNetEaseListIndices()
 
     updateList(m_neLocalIndexButtons, m_neLocalRowHovered, m_neLocalIconHovered, m_neLocalActiveRow);
     updateList(m_neRecentIndexButtons, m_neRecentRowHovered, m_neRecentIconHovered, m_neRecentActiveRow);
+    updateList(m_neFavoriteIndexButtons, m_neFavoriteRowHovered, m_neFavoriteIconHovered, m_neFavoriteActiveRow);
+}
+
+void MainForm::InitDatabase()
+{
+    wchar_t exePath[MAX_PATH] = { 0 };
+    ::GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+    const std::filesystem::path dbPath =
+        std::filesystem::path(exePath).parent_path() / L"resources" / L"db" / L"KCEchoPlayer.db";
+    if (!m_database.Open(dbPath.wstring())) {
+        WriteLog(L"Database open failed: " + DatabaseMgr::FromUtf8(m_database.GetLastError()));
+        return;
+    }
+    m_database.Execute("CREATE TABLE IF NOT EXISTS app_settings(key TEXT PRIMARY KEY, value TEXT NOT NULL);");
+    m_database.Execute("INSERT OR IGNORE INTO app_settings(key, value) VALUES('auto_play_on_startup', '0');");
+}
+
+void MainForm::LoadLocalSongs()
+{
+    m_localSongs.clear();
+    const DatabaseMgr::Rows rows = m_database.Query(
+        "SELECT id, title, artist, album, duration_ms, file_path, file_size, COALESCE(cover_path, '') "
+        "FROM songs ORDER BY id ASC");
+    for (const DatabaseMgr::Row& row : rows) {
+        if (row.size() < 8) {
+            continue;
+        }
+        SongInfo song;
+        song.id = row[0].AsInt();
+        song.title = row[1].AsWide();
+        song.artist = row[2].AsWide();
+        song.album = row[3].AsWide();
+        song.durationMs = row[4].AsInt();
+        song.filePath = row[5].AsWide();
+        song.fileSize = row[6].AsInt();
+        song.coverPath = row[7].AsWide();
+        m_localSongs.push_back(std::move(song));
+    }
+}
+
+void MainForm::LoadRecentSongs()
+{
+    m_recentSongs.clear();
+    const DatabaseMgr::Rows rows = m_database.Query(
+        "SELECT song_id, title, artist, album, COALESCE(cover_path, ''), duration_ms, file_size, "
+        "file_path, is_favorite, last_played_at, play_count, last_position_ms "
+        "FROM v_recent_plays");
+    for (const DatabaseMgr::Row& row : rows) {
+        if (row.size() < 12) {
+            continue;
+        }
+        RecentSongInfo song;
+        song.id = row[0].AsInt();
+        song.title = row[1].AsWide();
+        song.artist = row[2].AsWide();
+        song.album = row[3].AsWide();
+        song.coverPath = row[4].AsWide();
+        song.durationMs = row[5].AsInt();
+        song.fileSize = row[6].AsInt();
+        song.filePath = row[7].AsWide();
+        song.favorite = row[8].AsInt() != 0;
+        song.lastPlayedAt = row[9].AsInt();
+        song.playCount = row[10].AsInt();
+        song.lastPositionMs = row[11].AsInt();
+        m_recentSongs.push_back(std::move(song));
+    }
+}
+
+void MainForm::LoadFavoriteSongs()
+{
+    m_favoriteSongs.clear();
+    const DatabaseMgr::Rows rows = m_database.Query(
+        "SELECT song_id, title, artist, album, COALESCE(cover_path, ''), duration_ms, file_size, "
+        "file_path, added_at, sort_order, COALESCE(note, ''), play_count "
+        "FROM v_favorites");
+    for (const DatabaseMgr::Row& row : rows) {
+        if (row.size() < 12) {
+            continue;
+        }
+        FavoriteSongInfo song;
+        song.id = row[0].AsInt();
+        song.title = row[1].AsWide();
+        song.artist = row[2].AsWide();
+        song.album = row[3].AsWide();
+        song.coverPath = row[4].AsWide();
+        song.durationMs = row[5].AsInt();
+        song.fileSize = row[6].AsInt();
+        song.filePath = row[7].AsWide();
+        song.addedAt = row[8].AsInt();
+        song.sortOrder = row[9].AsInt();
+        song.note = row[10].AsWide();
+        song.playCount = row[11].AsInt();
+        m_favoriteSongs.push_back(std::move(song));
+    }
+}
+
+void MainForm::RefreshLocalList()
+{
+    if (m_neLocalList == nullptr) {
+        return;
+    }
+    m_neLocalList->RemoveAllItems();
+    m_neLocalRowUi.clear();
+    m_neLocalRows.clear();
+    m_neLocalIndexButtons.clear();
+    m_neLocalRowHovered.assign(m_localSongs.size(), false);
+    m_neLocalIconHovered.assign(m_localSongs.size(), false);
+    m_neLocalActiveRow = m_hasCurrentSong ? FindLocalIndexBySongId(m_currentSong.id) : -1;
+
+    auto makeLabel = [this](const DString& cls, const std::wstring& text, int width, bool stretch) {
+        ui::Label* label = new ui::Label(this);
+        label->SetClass(cls);
+        label->SetText(text.c_str());
+        label->SetMouseEnabled(false);
+        if (stretch) {
+            label->SetFixedWidth(ui::UiFixedInt::MakeStretch(), true, true);
+        }
+        else {
+            label->SetFixedWidth(ui::UiFixedInt(width), true, true);
+        }
+        return label;
+    };
+    auto makeTitleBox = [this, &makeLabel](const std::wstring& title, const std::wstring& artist,
+                                           ui::Label*& titleLabel, ui::Label*& artistLabel) {
+        ui::VBox* box = new ui::VBox(this);
+        box->SetFixedWidth(ui::UiFixedInt::MakeStretch(), true, true);
+        box->SetFixedHeight(ui::UiFixedInt::MakeAuto(), true, true);
+        box->SetAttribute(_T("valign"), _T("center"));
+        box->SetAttribute(_T("child_margin"), _T("1"));
+        box->SetAttribute(_T("mouse_enabled"), _T("false"));
+        titleLabel = makeLabel(_T("ne_song_title"), title, 0, true);
+        artistLabel = makeLabel(_T("ne_song_artist"), artist, 0, true);
+        box->AddItem(titleLabel);
+        box->AddItem(artistLabel);
+        return box;
+    };
+
+    for (size_t i = 0; i < m_localSongs.size(); ++i) {
+        const SongInfo song = m_localSongs[i];
+        ui::ListBoxItem* item = new ui::ListBoxItem(this);
+        item->SetClass(_T("ne_list_row"));
+        item->SetFixedHeight(ui::UiFixedInt(58), true, true);
+
+        ui::HBox* row = new ui::HBox(this);
+        row->SetPadding(ui::UiPadding(13, 0, 13, 0), true);
+        row->SetFixedHeight(ui::UiFixedInt::MakeStretch(), true, true);
+        row->SetAttribute(_T("child_margin"), _T("10"));
+        row->SetMouseEnabled(false);
+
+        ui::Button* index = new ui::Button(this);
+        index->SetClass(_T("ne_index_btn"));
+        index->SetFixedWidth(ui::UiFixedInt(36), true, true);
+
+        ui::Label* titleLabel = nullptr;
+        ui::Label* artistLabel = nullptr;
+        ui::VBox* titleBox = makeTitleBox(NonEmptyText(song.title, L"未知歌曲"),
+                                          NonEmptyText(song.artist, L"未知歌手"),
+                                          titleLabel, artistLabel);
+        ui::Label* album = makeLabel(_T("ne_col"), NonEmptyText(song.album, L"未知专辑"), 210, false);
+        ui::Label* duration = makeLabel(_T("ne_col"), FormatTime(song.durationMs / 1000.0), 80, false);
+        ui::Label* size = makeLabel(_T("ne_col"), FormatFileSize(song.fileSize), 80, false);
+
+        row->AddItem(index);
+        row->AddItem(titleBox);
+        row->AddItem(album);
+        row->AddItem(duration);
+        row->AddItem(size);
+        item->AddItem(row);
+        item->AttachClick([this, song](const ui::EventArgs& /*args*/) {
+            PlaySong(song);
+            return true;
+            });
+
+        auto* rowHovered = &m_neLocalRowHovered;
+        auto* iconHovered = &m_neLocalIconHovered;
+        item->AttachMouseEnter([this, i, rowHovered](const ui::EventArgs& /*args*/) {
+            (*rowHovered)[i] = true;
+            UpdateNetEaseListIndices();
+            return true;
+            });
+        item->AttachMouseLeave([this, i, rowHovered, iconHovered](const ui::EventArgs& /*args*/) {
+            (*rowHovered)[i] = false;
+            (*iconHovered)[i] = false;
+            UpdateNetEaseListIndices();
+            return true;
+            });
+        index->AttachMouseEnter([this, i, iconHovered](const ui::EventArgs& /*args*/) {
+            (*iconHovered)[i] = true;
+            UpdateNetEaseListIndices();
+            return true;
+            });
+        index->AttachMouseLeave([this, i, iconHovered](const ui::EventArgs& /*args*/) {
+            (*iconHovered)[i] = false;
+            UpdateNetEaseListIndices();
+            return true;
+            });
+        row->AttachClick([this, song](const ui::EventArgs& /*args*/) {
+            PlaySong(song);
+            return true;
+            });
+        index->AttachClick([this, song](const ui::EventArgs& /*args*/) {
+            PlaySong(song);
+            return true;
+            });
+
+        m_neLocalList->AddItem(item);
+        m_neLocalRows.push_back(row);
+        m_neLocalIndexButtons.push_back(index);
+        m_neLocalRowUi.push_back({ index, titleLabel, artistLabel, album, duration, size });
+    }
+
+    UpdateNetEaseLocalCount();
+    UpdateNetEaseListIndices();
+    UpdateNetEaseRowStyles();
+}
+
+void MainForm::RefreshRecentList()
+{
+    if (m_neRecentList == nullptr) {
+        return;
+    }
+    m_neRecentList->RemoveAllItems();
+    m_neRecentRowUi.clear();
+    m_neRecentRows.clear();
+    m_neRecentIndexButtons.clear();
+    m_neRecentRowHovered.assign(m_recentSongs.size(), false);
+    m_neRecentIconHovered.assign(m_recentSongs.size(), false);
+    m_neRecentActiveRow = m_hasCurrentSong ? FindRecentIndexBySongId(m_currentSong.id) : -1;
+
+    auto makeLabel = [this](const DString& cls, const std::wstring& text, int width, bool stretch) {
+        ui::Label* label = new ui::Label(this);
+        label->SetClass(cls);
+        label->SetText(text.c_str());
+        label->SetMouseEnabled(false);
+        if (stretch) {
+            label->SetFixedWidth(ui::UiFixedInt::MakeStretch(), true, true);
+        }
+        else {
+            label->SetFixedWidth(ui::UiFixedInt(width), true, true);
+        }
+        return label;
+    };
+    auto makeTitleBox = [this, &makeLabel](const std::wstring& title, const std::wstring& artist,
+                                           ui::Label*& titleLabel, ui::Label*& artistLabel) {
+        ui::VBox* box = new ui::VBox(this);
+        box->SetFixedWidth(ui::UiFixedInt::MakeStretch(), true, true);
+        box->SetFixedHeight(ui::UiFixedInt::MakeAuto(), true, true);
+        box->SetAttribute(_T("valign"), _T("center"));
+        box->SetAttribute(_T("child_margin"), _T("1"));
+        box->SetAttribute(_T("mouse_enabled"), _T("false"));
+        titleLabel = makeLabel(_T("ne_song_title"), title, 0, true);
+        artistLabel = makeLabel(_T("ne_song_artist"), artist, 0, true);
+        box->AddItem(titleLabel);
+        box->AddItem(artistLabel);
+        return box;
+    };
+    static const DString kCoverColors[] = {
+        _T("#FF3D3D4A"), _T("#FF47536B"), _T("#FF8A6B58"), _T("#FFB36A4E"),
+        _T("#FF4A6C9B"), _T("#FFC45B48"), _T("#FFC06B9D"), _T("#FF8F6E5B"),
+        _T("#FF567B9E")
+    };
+
+    for (size_t i = 0; i < m_recentSongs.size(); ++i) {
+        const RecentSongInfo song = m_recentSongs[i];
+        ui::ListBoxItem* item = new ui::ListBoxItem(this);
+        item->SetClass(_T("ne_list_row"));
+        item->SetFixedHeight(ui::UiFixedInt(58), true, true);
+
+        ui::HBox* row = new ui::HBox(this);
+        row->SetPadding(ui::UiPadding(13, 0, 13, 0), true);
+        row->SetFixedHeight(ui::UiFixedInt::MakeStretch(), true, true);
+        row->SetAttribute(_T("child_margin"), _T("10"));
+        row->SetMouseEnabled(false);
+
+        ui::Button* index = new ui::Button(this);
+        index->SetClass(_T("ne_index_btn"));
+        index->SetFixedWidth(ui::UiFixedInt(36), true, true);
+
+        ui::HBox* cover = new ui::HBox(this);
+        cover->SetClass(_T("ne_cover_small"));
+        cover->SetFixedWidth(ui::UiFixedInt(44), true, true);
+        cover->SetFixedHeight(ui::UiFixedInt(44), true, true);
+        cover->SetBkColor(kCoverColors[i % (sizeof(kCoverColors) / sizeof(kCoverColors[0]))]);
+        ui::Label* coverText = new ui::Label(this);
+        coverText->SetClass(_T("ne_cover_text"));
+        coverText->SetText(_T("乐"));
+        coverText->SetFixedWidth(ui::UiFixedInt::MakeStretch(), true, true);
+        coverText->SetFixedHeight(ui::UiFixedInt::MakeStretch(), true, true);
+        coverText->SetMouseEnabled(false);
+        cover->AddItem(coverText);
+
+        ui::Label* titleLabel = nullptr;
+        ui::Label* artistLabel = nullptr;
+        ui::VBox* titleBox = makeTitleBox(NonEmptyText(song.title, L"未知歌曲"),
+                                          NonEmptyText(song.artist, L"未知歌手"),
+                                          titleLabel, artistLabel);
+        ui::Label* album = makeLabel(_T("ne_col"), NonEmptyText(song.album, L"未知专辑"), 250, false);
+        ui::Button* favorite = new ui::Button(this);
+        favorite->SetClass(_T("ne_ghost_btn"));
+        favorite->SetFixedWidth(ui::UiFixedInt(64), true, true);
+        favorite->SetFixedHeight(ui::UiFixedInt(28), true, true);
+        favorite->SetAttribute(_T("valign"), _T("center"));
+        favorite->SetText(song.favorite ? _T("已收藏") : _T("喜欢"));
+        if (song.favorite) {
+            favorite->SetEnabled(false);
+        }
+        ui::Label* playedTime = makeLabel(_T("ne_col"), FormatRelativeTime(song.lastPlayedAt), 90, false);
+
+        row->AddItem(index);
+        row->AddItem(cover);
+        row->AddItem(titleBox);
+        row->AddItem(album);
+        row->AddItem(favorite);
+        row->AddItem(playedTime);
+        item->AddItem(row);
+        item->AttachClick([this, song](const ui::EventArgs& /*args*/) {
+            PlaySong(song);
+            return true;
+            });
+
+        auto* rowHovered = &m_neRecentRowHovered;
+        auto* iconHovered = &m_neRecentIconHovered;
+        item->AttachMouseEnter([this, i, rowHovered](const ui::EventArgs& /*args*/) {
+            (*rowHovered)[i] = true;
+            UpdateNetEaseListIndices();
+            return true;
+            });
+        item->AttachMouseLeave([this, i, rowHovered, iconHovered](const ui::EventArgs& /*args*/) {
+            (*rowHovered)[i] = false;
+            (*iconHovered)[i] = false;
+            UpdateNetEaseListIndices();
+            return true;
+            });
+        index->AttachMouseEnter([this, i, iconHovered](const ui::EventArgs& /*args*/) {
+            (*iconHovered)[i] = true;
+            UpdateNetEaseListIndices();
+            return true;
+            });
+        index->AttachMouseLeave([this, i, iconHovered](const ui::EventArgs& /*args*/) {
+            (*iconHovered)[i] = false;
+            UpdateNetEaseListIndices();
+            return true;
+            });
+        row->AttachClick([this, song](const ui::EventArgs& /*args*/) {
+            PlaySong(song);
+            return true;
+            });
+        index->AttachClick([this, song](const ui::EventArgs& /*args*/) {
+            PlaySong(song);
+            return true;
+            });
+        if (!song.favorite) {
+            favorite->AttachClick([this, song](const ui::EventArgs& /*args*/) {
+                AddFavoriteBySongId(song.id);
+                return true;
+                });
+        }
+
+        m_neRecentList->AddItem(item);
+        m_neRecentRows.push_back(row);
+        m_neRecentIndexButtons.push_back(index);
+        m_neRecentRowUi.push_back({ index, titleLabel, artistLabel, album, favorite, playedTime });
+    }
+
+    if (m_neRecentSingleTab != nullptr) {
+        wchar_t buffer[64] = { 0 };
+        swprintf_s(buffer, L"单曲 %zu", m_recentSongs.size());
+        m_neRecentSingleTab->SetText(buffer);
+    }
+
+    UpdateNetEaseListIndices();
+    UpdateNetEaseRowStyles();
+}
+
+void MainForm::RefreshFavoriteList()
+{
+    if (m_neFavoriteList == nullptr) {
+        return;
+    }
+    m_neFavoriteList->RemoveAllItems();
+    m_neFavoriteRowUi.clear();
+    m_neFavoriteRows.clear();
+    m_neFavoriteIndexButtons.clear();
+    m_neFavoriteRowHovered.assign(m_favoriteSongs.size(), false);
+    m_neFavoriteIconHovered.assign(m_favoriteSongs.size(), false);
+    m_neFavoriteActiveRow = m_hasCurrentSong ? FindFavoriteIndexBySongId(m_currentSong.id) : -1;
+
+    auto makeLabel = [this](const DString& cls, const std::wstring& text, int width, bool stretch) {
+        ui::Label* label = new ui::Label(this);
+        label->SetClass(cls);
+        label->SetText(text.c_str());
+        label->SetMouseEnabled(false);
+        if (stretch) {
+            label->SetFixedWidth(ui::UiFixedInt::MakeStretch(), true, true);
+        }
+        else {
+            label->SetFixedWidth(ui::UiFixedInt(width), true, true);
+        }
+        return label;
+    };
+    auto makeTitleBox = [this, &makeLabel](const std::wstring& title, const std::wstring& artist,
+                                           ui::Label*& titleLabel, ui::Label*& artistLabel) {
+        ui::VBox* box = new ui::VBox(this);
+        box->SetFixedWidth(ui::UiFixedInt::MakeStretch(), true, true);
+        box->SetFixedHeight(ui::UiFixedInt::MakeAuto(), true, true);
+        box->SetAttribute(_T("valign"), _T("center"));
+        box->SetAttribute(_T("child_margin"), _T("1"));
+        box->SetAttribute(_T("mouse_enabled"), _T("false"));
+        titleLabel = makeLabel(_T("ne_song_title"), title, 0, true);
+        artistLabel = makeLabel(_T("ne_song_artist"), artist, 0, true);
+        box->AddItem(titleLabel);
+        box->AddItem(artistLabel);
+        return box;
+    };
+
+    for (size_t i = 0; i < m_favoriteSongs.size(); ++i) {
+        const FavoriteSongInfo song = m_favoriteSongs[i];
+        ui::ListBoxItem* item = new ui::ListBoxItem(this);
+        item->SetClass(_T("ne_list_row"));
+        item->SetFixedHeight(ui::UiFixedInt(58), true, true);
+
+        ui::HBox* row = new ui::HBox(this);
+        row->SetPadding(ui::UiPadding(13, 0, 13, 0), true);
+        row->SetFixedHeight(ui::UiFixedInt::MakeStretch(), true, true);
+        row->SetAttribute(_T("child_margin"), _T("10"));
+        row->SetMouseEnabled(false);
+
+        ui::Button* index = new ui::Button(this);
+        index->SetClass(_T("ne_index_btn"));
+        index->SetFixedWidth(ui::UiFixedInt(36), true, true);
+
+        ui::Label* titleLabel = nullptr;
+        ui::Label* artistLabel = nullptr;
+        ui::VBox* titleBox = makeTitleBox(NonEmptyText(song.title, L"未知歌曲"),
+                                          NonEmptyText(song.artist, L"未知歌手"),
+                                          titleLabel, artistLabel);
+        ui::Label* album = makeLabel(_T("ne_col"), NonEmptyText(song.album, L"未知专辑"), 220, false);
+        ui::Label* addedTime = makeLabel(_T("ne_col"), FormatDateTime(song.addedAt), 150, false);
+        ui::Label* playCount = makeLabel(_T("ne_col"), std::to_wstring(song.playCount), 80, false);
+
+        ui::Button* remove = new ui::Button(this);
+        remove->SetClass(_T("ne_ghost_btn"));
+        remove->SetFixedWidth(ui::UiFixedInt(90), true, true);
+        remove->SetFixedHeight(ui::UiFixedInt(28), true, true);
+        remove->SetAttribute(_T("valign"), _T("center"));
+        remove->SetText(_T("取消收藏"));
+
+        row->AddItem(index);
+        row->AddItem(titleBox);
+        row->AddItem(album);
+        row->AddItem(addedTime);
+        row->AddItem(playCount);
+        row->AddItem(remove);
+        item->AddItem(row);
+        item->AttachClick([this, song](const ui::EventArgs& /*args*/) {
+            PlaySong(song);
+            return true;
+            });
+
+        auto* rowHovered = &m_neFavoriteRowHovered;
+        auto* iconHovered = &m_neFavoriteIconHovered;
+        item->AttachMouseEnter([this, i, rowHovered](const ui::EventArgs& /*args*/) {
+            (*rowHovered)[i] = true;
+            UpdateNetEaseListIndices();
+            return true;
+            });
+        item->AttachMouseLeave([this, i, rowHovered, iconHovered](const ui::EventArgs& /*args*/) {
+            (*rowHovered)[i] = false;
+            (*iconHovered)[i] = false;
+            UpdateNetEaseListIndices();
+            return true;
+            });
+        index->AttachMouseEnter([this, i, iconHovered](const ui::EventArgs& /*args*/) {
+            (*iconHovered)[i] = true;
+            UpdateNetEaseListIndices();
+            return true;
+            });
+        index->AttachMouseLeave([this, i, iconHovered](const ui::EventArgs& /*args*/) {
+            (*iconHovered)[i] = false;
+            UpdateNetEaseListIndices();
+            return true;
+            });
+        row->AttachClick([this, song](const ui::EventArgs& /*args*/) {
+            PlaySong(song);
+            return true;
+            });
+        index->AttachClick([this, song](const ui::EventArgs& /*args*/) {
+            PlaySong(song);
+            return true;
+            });
+        remove->AttachClick([this, song](const ui::EventArgs& /*args*/) {
+            RemoveFavoriteBySongId(song.id);
+            return true;
+            });
+
+        m_neFavoriteList->AddItem(item);
+        m_neFavoriteRows.push_back(row);
+        m_neFavoriteIndexButtons.push_back(index);
+        m_neFavoriteRowUi.push_back({ index, titleLabel, artistLabel, album, addedTime, playCount, remove });
+    }
+
+    UpdateNetEaseFavoriteCount();
+    UpdateNetEaseListIndices();
+    UpdateNetEaseRowStyles();
+}
+
+void MainForm::RefreshAllNetEaseLists()
+{
+    RefreshLocalList();
+    RefreshRecentList();
+    RefreshFavoriteList();
+}
+
+void MainForm::UpdateNetEaseLocalCount()
+{
+    if (m_neLocalCount == nullptr) {
+        return;
+    }
+    wchar_t buffer[64] = { 0 };
+    swprintf_s(buffer, L"共 %zu 首", m_localSongs.size());
+    m_neLocalCount->SetText(buffer);
+}
+
+void MainForm::UpdateNetEaseFavoriteCount()
+{
+    if (m_neFavoriteCount == nullptr) {
+        return;
+    }
+    wchar_t buffer[64] = { 0 };
+    swprintf_s(buffer, L"共 %zu 首", m_favoriteSongs.size());
+    m_neFavoriteCount->SetText(buffer);
+}
+
+int MainForm::FindLocalIndexBySongId(int64_t songId) const
+{
+    for (size_t i = 0; i < m_localSongs.size(); ++i) {
+        if (m_localSongs[i].id == songId) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
+}
+
+int MainForm::FindRecentIndexBySongId(int64_t songId) const
+{
+    for (size_t i = 0; i < m_recentSongs.size(); ++i) {
+        if (m_recentSongs[i].id == songId) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
+}
+
+int MainForm::FindFavoriteIndexBySongId(int64_t songId) const
+{
+    for (size_t i = 0; i < m_favoriteSongs.size(); ++i) {
+        if (m_favoriteSongs[i].id == songId) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
+}
+
+void MainForm::ShowHint(const std::wstring& text)
+{
+    ::MessageBoxW(static_cast<HWND>(GetWindowHandle()), text.c_str(), L"提示",
+                  MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+}
+
+void MainForm::ChooseMusicSource()
+{
+    if (m_neChooseDir == nullptr) {
+        return;
+    }
+    ui::UiRect rect = m_neChooseDir->GetPos();
+    ui::UiPoint point(rect.left, rect.bottom + 4);
+    ClientToScreen(point);
+
+    ui::Menu* menu = new ui::Menu(this, m_neChooseDir);
+    menu->SetSkinFolder(_T("public/menu"));
+    menu->AttachMenuItemActivated([this](const DString& /*menuName*/, int32_t /*nMenuLevel*/,
+                                         const DString& itemName, size_t /*nItemIndex*/) {
+        if (itemName == _T("import_files")) {
+            std::vector<std::wstring> files = ShowOpenAudioDialog(static_cast<HWND>(GetWindowHandle()));
+            ImportMusicFiles(std::move(files));
+        }
+        else if (itemName == _T("import_folder")) {
+            const std::wstring folder = ShowSelectFolderDialog(static_cast<HWND>(GetWindowHandle()),
+                                                               L"选择音乐目录");
+            ImportMusicFolder(folder);
+        }
+        });
+    menu->ShowMenu(_T("import_menu.xml"), point, ui::MenuPopupPosType::LEFT_TOP);
+}
+
+void MainForm::ImportMusicFiles(std::vector<std::wstring> files)
+{
+    size_t added = 0;
+    for (const std::wstring& file : files) {
+        SongInfo song;
+        if (AddSongToDatabase(file, song)) {
+            ++added;
+        }
+    }
+    if (added == 0) {
+        if (!files.empty()) {
+            ShowHint(L"没有可导入的音频文件。");
+        }
+        return;
+    }
+    LoadLocalSongs();
+    RefreshLocalList();
+}
+
+void MainForm::ImportMusicFolder(const std::wstring& folder)
+{
+    if (folder.empty()) {
+        return;
+    }
+    std::vector<std::wstring> files = ScanAudioFiles(folder);
+    if (files.empty()) {
+        ShowHint(L"所选目录中没有找到支持的音频文件。");
+        return;
+    }
+    ImportMusicFiles(std::move(files));
+}
+
+bool MainForm::AddSongToDatabase(const std::wstring& filePath, SongInfo& song)
+{
+    std::error_code error;
+    std::filesystem::path path(filePath);
+    const std::filesystem::path canonicalPath = std::filesystem::weakly_canonical(path, error);
+    if (!error) {
+        path = canonicalPath;
+    }
+    if (!std::filesystem::exists(path, error) || !std::filesystem::is_regular_file(path, error)) {
+        return false;
+    }
+    const std::wstring normalizedPath = path.lexically_normal().wstring();
+    const int64_t existingId = m_database.QueryInt(
+        "SELECT id FROM songs WHERE file_path = ?1",
+        { DatabaseMgr::Value::Text(normalizedPath) },
+        0);
+    if (existingId > 0) {
+        song.id = existingId;
+        song.filePath = normalizedPath;
+        return true;
+    }
+
+    int64_t fileSize = 0;
+    const uintmax_t size = std::filesystem::file_size(path, error);
+    if (!error) {
+        fileSize = static_cast<int64_t>(size);
+    }
+
+    song.id = 0;
+    song.title = path.stem().wstring();
+    song.artist = L"未知歌手";
+    song.album = L"未知专辑";
+    song.filePath = normalizedPath;
+    song.durationMs = 0;
+    song.fileSize = fileSize;
+
+    int64_t insertedId = 0;
+    const bool success = m_database.Execute(
+        "INSERT INTO songs(title, artist, album, duration_ms, file_path, file_size, source) "
+        "VALUES(?1, ?2, ?3, ?4, ?5, ?6, 'local')",
+        {
+            DatabaseMgr::Value::Text(song.title),
+            DatabaseMgr::Value::Text(song.artist),
+            DatabaseMgr::Value::Text(song.album),
+            DatabaseMgr::Value::Int(song.durationMs),
+            DatabaseMgr::Value::Text(song.filePath),
+            DatabaseMgr::Value::Int(song.fileSize)
+        },
+        insertedId);
+    if (!success) {
+        WriteLog(L"Insert song failed: " + DatabaseMgr::FromUtf8(m_database.GetLastError()));
+        return false;
+    }
+    song.id = insertedId;
+    return true;
+}
+
+void MainForm::PlaySong(const SongInfo& song)
+{
+    std::error_code error;
+    if (song.filePath.empty() || !std::filesystem::exists(song.filePath, error)) {
+        ShowHint(L"歌曲文件不存在：\n" + song.filePath);
+        return;
+    }
+
+    m_currentSong = song;
+    m_hasCurrentSong = true;
+    m_player.Open(song.filePath, true);
+
+    LoadLyricsForSong(song.filePath);
+    UpdateLyricsPanel(0.0);
+
+    m_neLocalActiveRow = FindLocalIndexBySongId(song.id);
+    m_neRecentActiveRow = FindRecentIndexBySongId(song.id);
+    m_neFavoriteActiveRow = FindFavoriteIndexBySongId(song.id);
+
+    UpdateNetEaseBottomInfo();
+    UpdateNetEaseListIndices();
+    UpdateNetEaseRowStyles();
+    UpdateNetEasePlayButton();
+    if (m_neProgress != nullptr) {
+        m_neProgress->SetValueNoEvent(0.0);
+    }
+}
+
+void MainForm::PlayLocalRow(size_t index)
+{
+    if (index < m_localSongs.size()) {
+        PlaySong(m_localSongs[index]);
+    }
+}
+
+void MainForm::PlayRecentRow(size_t index)
+{
+    if (index < m_recentSongs.size()) {
+        PlaySong(m_recentSongs[index]);
+    }
+}
+
+void MainForm::PlayFavoriteRow(size_t index)
+{
+    if (index < m_favoriteSongs.size()) {
+        PlaySong(m_favoriteSongs[index]);
+    }
+}
+
+void MainForm::PlayNetEaseNext()
+{
+    if (m_localSongs.empty()) {
+        ShowHint(L"本地音乐列表为空，请先导入歌曲。");
+        return;
+    }
+    const int current = m_hasCurrentSong ? FindLocalIndexBySongId(m_currentSong.id) : -1;
+    if (current < 0) {
+        PlaySong(m_localSongs.front());
+        return;
+    }
+    const size_t next = static_cast<size_t>((current + 1) % static_cast<int>(m_localSongs.size()));
+    PlaySong(m_localSongs[next]);
+}
+
+void MainForm::PlayNetEasePrevious()
+{
+    if (m_localSongs.empty()) {
+        ShowHint(L"本地音乐列表为空，请先导入歌曲。");
+        return;
+    }
+    const int current = m_hasCurrentSong ? FindLocalIndexBySongId(m_currentSong.id) : -1;
+    if (current < 0) {
+        PlaySong(m_localSongs.front());
+        return;
+    }
+    const int count = static_cast<int>(m_localSongs.size());
+    const size_t previous = static_cast<size_t>((current - 1 + count) % count);
+    PlaySong(m_localSongs[previous]);
+}
+
+void MainForm::AddFavoriteBySongId(int64_t songId)
+{
+    if (songId <= 0) {
+        return;
+    }
+    m_database.Execute(
+        "INSERT OR IGNORE INTO favorites(song_id, added_at, sort_order) VALUES(?1, ?2, 0)",
+        { DatabaseMgr::Value::Int(songId), DatabaseMgr::Value::Int(NowEpochSeconds()) });
+    LoadRecentSongs();
+    LoadFavoriteSongs();
+    RefreshRecentList();
+    RefreshFavoriteList();
+}
+
+void MainForm::RemoveFavoriteBySongId(int64_t songId)
+{
+    if (songId <= 0) {
+        return;
+    }
+    m_database.Execute("DELETE FROM favorites WHERE song_id = ?1",
+                       { DatabaseMgr::Value::Int(songId) });
+    LoadRecentSongs();
+    LoadFavoriteSongs();
+    RefreshRecentList();
+    RefreshFavoriteList();
+}
+
+void MainForm::RecordRecentPlay(const SongInfo& song)
+{
+    if (song.id <= 0) {
+        return;
+    }
+    const int64_t now = NowEpochSeconds();
+    const int64_t count = m_database.QueryInt(
+        "SELECT COUNT(*) FROM recent_plays WHERE song_id = ?1",
+        { DatabaseMgr::Value::Int(song.id) }, 0);
+    if (count > 0) {
+        m_database.Execute(
+            "UPDATE recent_plays SET last_played_at = ?1, play_count = play_count + 1, "
+            "last_position_ms = 0 WHERE song_id = ?2",
+            { DatabaseMgr::Value::Int(now), DatabaseMgr::Value::Int(song.id) });
+    }
+    else {
+        m_database.Execute(
+            "INSERT INTO recent_plays(song_id, last_played_at, play_count, last_position_ms) "
+            "VALUES(?1, ?2, 1, 0)",
+            { DatabaseMgr::Value::Int(song.id), DatabaseMgr::Value::Int(now) });
+    }
+}
+
+void MainForm::UpdateNetEaseRowStyles()
+{
+    auto setClass = [](ui::Label* label, const DString& cls) {
+        if (label != nullptr) {
+            label->SetClass(cls);
+        }
+    };
+    for (size_t i = 0; i < m_neLocalRowUi.size(); ++i) {
+        const bool active = (static_cast<int>(i) == m_neLocalActiveRow);
+        setClass(m_neLocalRowUi[i].title, active ? _T("ne_song_title_red") : _T("ne_song_title"));
+        setClass(m_neLocalRowUi[i].artist, active ? _T("ne_song_artist_red") : _T("ne_song_artist"));
+        setClass(m_neLocalRowUi[i].album, active ? _T("ne_col_red") : _T("ne_col"));
+        setClass(m_neLocalRowUi[i].duration, active ? _T("ne_col_red") : _T("ne_col"));
+        setClass(m_neLocalRowUi[i].size, active ? _T("ne_col_red") : _T("ne_col"));
+    }
+    for (size_t i = 0; i < m_neRecentRowUi.size(); ++i) {
+        const bool active = (static_cast<int>(i) == m_neRecentActiveRow);
+        setClass(m_neRecentRowUi[i].title, active ? _T("ne_song_title_red") : _T("ne_song_title"));
+        setClass(m_neRecentRowUi[i].artist, active ? _T("ne_song_artist_red") : _T("ne_song_artist"));
+        setClass(m_neRecentRowUi[i].album, active ? _T("ne_col_red") : _T("ne_col"));
+        setClass(m_neRecentRowUi[i].playedTime, active ? _T("ne_col_red") : _T("ne_col"));
+    }
+    for (size_t i = 0; i < m_neFavoriteRowUi.size(); ++i) {
+        const bool active = (static_cast<int>(i) == m_neFavoriteActiveRow);
+        setClass(m_neFavoriteRowUi[i].title, active ? _T("ne_song_title_red") : _T("ne_song_title"));
+        setClass(m_neFavoriteRowUi[i].artist, active ? _T("ne_song_artist_red") : _T("ne_song_artist"));
+        setClass(m_neFavoriteRowUi[i].album, active ? _T("ne_col_red") : _T("ne_col"));
+        setClass(m_neFavoriteRowUi[i].addedTime, active ? _T("ne_col_red") : _T("ne_col"));
+        setClass(m_neFavoriteRowUi[i].playCount, active ? _T("ne_col_red") : _T("ne_col"));
+    }
+}
+
+void MainForm::LoadLyricsForSong(const std::wstring& filePath)
+{
+    m_lyrics.clear();
+    m_currentLyricIndex = -1;
+
+    std::filesystem::path lrcPath(filePath);
+    lrcPath.replace_extension(L".lrc");
+    std::error_code error;
+    if (!std::filesystem::exists(lrcPath, error)) {
+        lrcPath.replace_extension(L".LRC");
+        if (!std::filesystem::exists(lrcPath, error)) {
+            return;
+        }
+    }
+
+    const std::wstring content = ReadTextFileAutoEncoding(lrcPath);
+    if (content.empty()) {
+        return;
+    }
+
+    std::wstringstream stream(content);
+    std::wstring line;
+    while (std::getline(stream, line)) {
+        line = TrimWideText(line);
+        if (line.empty()) {
+            continue;
+        }
+        std::vector<int64_t> times;
+        size_t pos = 0;
+        while (pos < line.size() && line[pos] == L'[') {
+            const size_t end = line.find(L']', pos + 1);
+            if (end == std::wstring::npos) {
+                break;
+            }
+            const std::wstring tag = line.substr(pos + 1, end - pos - 1);
+            int minutes = 0;
+            int seconds = 0;
+            double fraction = 0.0;
+            const int parsed = swscanf_s(tag.c_str(), L"%d:%d.%lf", &minutes, &seconds, &fraction);
+            if (parsed == 3) {
+                const int milliseconds = static_cast<int>(fraction * 1000.0 + 0.5);
+                times.push_back((static_cast<int64_t>(minutes) * 60 + seconds) * 1000 + milliseconds);
+            }
+            else if (swscanf_s(tag.c_str(), L"%d:%d", &minutes, &seconds) == 2) {
+                times.push_back((static_cast<int64_t>(minutes) * 60 + seconds) * 1000);
+            }
+            pos = end + 1;
+        }
+        if (times.empty() || pos >= line.size()) {
+            continue;
+        }
+        const std::wstring lyricText = TrimWideText(line.substr(pos));
+        if (lyricText.empty()) {
+            continue;
+        }
+        for (int64_t timeMs : times) {
+            m_lyrics.push_back({ timeMs, lyricText });
+        }
+    }
+
+    std::sort(m_lyrics.begin(), m_lyrics.end(),
+              [](const LyricLine& left, const LyricLine& right) {
+                  return left.timeMs < right.timeMs;
+              });
+}
+
+void MainForm::UpdateLyricsPanel(double positionSeconds)
+{
+    if (m_lyricLabels.empty()) {
+        return;
+    }
+    const int center = static_cast<int>(m_lyricLabels.size() / 2);
+    if (m_lyrics.empty()) {
+        if (m_currentLyricIndex == -2) {
+            return;
+        }
+        m_currentLyricIndex = -2;
+        for (size_t i = 0; i < m_lyricLabels.size(); ++i) {
+            ui::Label* label = m_lyricLabels[i];
+            if (label == nullptr) {
+                continue;
+            }
+            label->SetClass(_T("ne_lyric_line"));
+            label->SetText(i == static_cast<size_t>(center) ? _T("暂无歌词") : _T(""));
+        }
+        return;
+    }
+
+    const int64_t positionMs = static_cast<int64_t>(std::max(0.0, positionSeconds) * 1000.0);
+    int index = 0;
+    if (positionMs >= m_lyrics.front().timeMs) {
+        for (size_t i = 0; i < m_lyrics.size(); ++i) {
+            if (m_lyrics[i].timeMs <= positionMs) {
+                index = static_cast<int>(i);
+            }
+            else {
+                break;
+            }
+        }
+    }
+    if (index == m_currentLyricIndex) {
+        return;
+    }
+    m_currentLyricIndex = index;
+
+    for (int i = 0; i < static_cast<int>(m_lyricLabels.size()); ++i) {
+        ui::Label* label = m_lyricLabels[static_cast<size_t>(i)];
+        if (label == nullptr) {
+            continue;
+        }
+        const int lineIndex = index - center + i;
+        if ((lineIndex >= 0) && (lineIndex < static_cast<int>(m_lyrics.size()))) {
+            label->SetText(m_lyrics[static_cast<size_t>(lineIndex)].text.c_str());
+        }
+        else {
+            label->SetText(_T(""));
+        }
+        label->SetClass(i == center ? _T("ne_lyric_line_active") : _T("ne_lyric_line"));
+    }
+}
+
+void MainForm::UpdateNetEaseBottomInfo()
+{
+    const std::wstring title = m_hasCurrentSong ? NonEmptyText(m_currentSong.title, L"未选择") : L"未选择";
+    const std::wstring artist = m_hasCurrentSong ? NonEmptyText(m_currentSong.artist, L"") : L"";
+    if (m_neBottomTitle != nullptr) {
+        m_neBottomTitle->SetText(title.c_str());
+    }
+    if (m_neBottomArtist != nullptr) {
+        m_neBottomArtist->SetText(artist.c_str());
+    }
+    if (m_nePlayerBottomTitle != nullptr) {
+        m_nePlayerBottomTitle->SetText(title.c_str());
+    }
+    if (m_nePlayerBottomArtist != nullptr) {
+        m_nePlayerBottomArtist->SetText(artist.c_str());
+    }
+    if (m_nePlayerPageTitle != nullptr) {
+        m_nePlayerPageTitle->SetText(title.c_str());
+    }
+    if (m_nePlayerPageMeta != nullptr) {
+        if (m_hasCurrentSong) {
+            const std::wstring album = NonEmptyText(m_currentSong.album, L"未知专辑");
+            const std::wstring meta = L"专辑：" + album + L"     歌手：" + artist + L"     来源：本地音乐";
+            m_nePlayerPageMeta->SetText(meta.c_str());
+        }
+        else {
+            m_nePlayerPageMeta->SetText(_T("来源：本地音乐"));
+        }
+    }
+}
+
+void MainForm::LoadAppSettings()
+{
+    if (!m_database.IsOpen()) {
+        return;
+    }
+    m_database.Execute("CREATE TABLE IF NOT EXISTS app_settings(key TEXT PRIMARY KEY, value TEXT NOT NULL);");
+    m_database.Execute("INSERT OR IGNORE INTO app_settings(key, value) VALUES('auto_play_on_startup', '0');");
+}
+
+void MainForm::SetAutoStart(bool enabled)
+{
+    HKEY key = nullptr;
+    if (::RegCreateKeyExW(HKEY_CURRENT_USER,
+                          L"Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+                          0, nullptr, 0, KEY_SET_VALUE, nullptr, &key, nullptr) != ERROR_SUCCESS) {
+        return;
+    }
+    if (enabled) {
+        wchar_t exePath[MAX_PATH] = { 0 };
+        ::GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+        ::RegSetValueExW(key, L"KCEchoPlayer", 0, REG_SZ,
+                         reinterpret_cast<const BYTE*>(exePath),
+                         static_cast<DWORD>((wcslen(exePath) + 1) * sizeof(wchar_t)));
+    }
+    else {
+        ::RegDeleteValueW(key, L"KCEchoPlayer");
+    }
+    ::RegCloseKey(key);
+}
+
+bool MainForm::IsAutoStartEnabled() const
+{
+    HKEY key = nullptr;
+    if (::RegOpenKeyExW(HKEY_CURRENT_USER,
+                        L"Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+                        0, KEY_READ, &key) != ERROR_SUCCESS) {
+        return false;
+    }
+    const bool exists = ::RegQueryValueExW(key, L"KCEchoPlayer", nullptr, nullptr,
+                                           nullptr, nullptr) == ERROR_SUCCESS;
+    ::RegCloseKey(key);
+    return exists;
+}
+
+void MainForm::SetAutoPlayOnStartup(bool enabled)
+{
+    if (!m_database.IsOpen()) {
+        return;
+    }
+    m_database.Execute(
+        "INSERT OR REPLACE INTO app_settings(key, value) VALUES('auto_play_on_startup', ?1)",
+        { DatabaseMgr::Value::Text(enabled ? L"1" : L"0") });
+}
+
+bool MainForm::IsAutoPlayOnStartup()
+{
+    if (!m_database.IsOpen()) {
+        return false;
+    }
+    const std::string value = m_database.QueryText(
+        "SELECT value FROM app_settings WHERE key = 'auto_play_on_startup'",
+        {},
+        "0");
+    return value == "1";
 }
 
 void MainForm::AddPlaylistItem(const std::wstring& filePath, size_t index)
@@ -797,6 +2064,25 @@ void MainForm::PlayIndex(size_t index)
 
 void MainForm::PlayCurrent()
 {
+    if (m_isNetEase) {
+        if (!m_hasCurrentSong) {
+            if (!m_localSongs.empty()) {
+                PlaySong(m_localSongs.front());
+            }
+            else {
+                ShowHint(L"本地音乐列表为空，请先导入歌曲。");
+            }
+            return;
+        }
+        if (!m_player.HasStream()) {
+            PlaySong(m_currentSong);
+            return;
+        }
+        m_player.Play();
+        UpdateNetEasePlayButton();
+        return;
+    }
+
     if (m_playlist.empty()) {
         return;
     }
@@ -818,6 +2104,10 @@ void MainForm::PauseCurrent()
 
 void MainForm::PlayNext()
 {
+    if (m_isNetEase) {
+        PlayNetEaseNext();
+        return;
+    }
     if (m_playlist.empty()) {
         return;
     }
@@ -830,6 +2120,10 @@ void MainForm::PlayNext()
 
 void MainForm::PlayPrevious()
 {
+    if (m_isNetEase) {
+        PlayNetEasePrevious();
+        return;
+    }
     if (m_playlist.empty()) {
         return;
     }
@@ -1018,7 +2312,26 @@ void MainForm::UpdateVisualization()
 void MainForm::OnTimer()
 {
     if (m_player.ConsumeEnded()) {
-        if (m_currentIndex >= 0 && m_currentIndex + 1 < static_cast<int>(m_playlist.size())) {
+        if (m_isNetEase) {
+            if (m_hasCurrentSong) {
+                RecordRecentPlay(m_currentSong);
+                LoadRecentSongs();
+                RefreshRecentList();
+
+                const int localIndex = FindLocalIndexBySongId(m_currentSong.id);
+                if ((localIndex >= 0) && !m_localSongs.empty()) {
+                    const size_t next = static_cast<size_t>((localIndex + 1) % static_cast<int>(m_localSongs.size()));
+                    PlaySong(m_localSongs[next]);
+                }
+                else {
+                    m_player.Stop();
+                    if (m_neProgress != nullptr) {
+                        m_neProgress->SetValueNoEvent(0.0);
+                    }
+                }
+            }
+        }
+        else if (m_currentIndex >= 0 && m_currentIndex + 1 < static_cast<int>(m_playlist.size())) {
             PlayIndex(static_cast<size_t>(m_currentIndex + 1));
         }
         else {
@@ -1066,6 +2379,8 @@ void MainForm::OnTimer()
     UpdateMuteButton();
     UpdateVisualization();
     if (m_isNetEase) {
+        const double lyricsPosition = m_player.HasStream() ? m_player.GetPosition() : 0.0;
+        UpdateLyricsPanel(lyricsPosition);
         UpdateNetEasePlayButton();
     }
 }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window shadow_type="menu_round" shadow_border_size="1" shadow_border_color="border_window">
+    <MenuListBox class="menu" name="import_menu" width="180" padding="0,4,0,4">
+        <MenuItem class="menu_element" name="import_files" text="选择音频文件"/>
+        <MenuItem class="menu_element" name="import_folder" text="选择文件夹"/>
+    </MenuListBox>
+</Window>

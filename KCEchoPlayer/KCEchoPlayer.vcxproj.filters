@@ -21,6 +21,9 @@
     <ClInclude Include="AudioPlayer.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="DatabaseMgr.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
     <ClInclude Include="SystemVolume.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -42,6 +45,17 @@
     <ClInclude Include="TestApplication.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="third-party\sqlite\sqlite3.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="third-party\sqlite\sqlite3ext.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="db\KCEchoPlayer.db">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="KCEchoPlayer.rc">
@@ -49,9 +63,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="small.ico">
-      <Filter>资源文件</Filter>
-    </Image>
     <Image Include="KCEchoPlayer.ico">
       <Filter>资源文件</Filter>
     </Image>
@@ -61,6 +72,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="AudioPlayer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DatabaseMgr.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="SystemVolume.cpp">
@@ -85,6 +99,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="TestApplication.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="third-party\sqlite\sqlite3.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

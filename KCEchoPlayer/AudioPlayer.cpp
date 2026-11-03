@@ -9,6 +9,10 @@
 
 namespace
 {
+std::mutex g_bassMutex;
+int g_bassRefCount = 0;
+bool g_bassInitialized = false;
+
 bool IsModuleFile(const std::wstring& filePath)
 {
     const size_t pos = filePath.find_last_of(L'.');
@@ -110,12 +114,24 @@ void AudioPlayer::Push(Command cmd)
 
 void AudioPlayer::WorkerProc()
 {
-    if (!BASS_Init(-1, 44100, 0, nullptr, nullptr)) {
-        WriteLog(L"BASS_Init failed: " + BassErrorText(BASS_ErrorGetCode()));
-        m_bassInit.store(false);
-    }
-    else {
-        m_bassInit.store(true);
+    {
+        std::lock_guard<std::mutex> lock(g_bassMutex);
+        if (g_bassRefCount == 0) {
+            if (!BASS_Init(-1, 44100, 0, nullptr, nullptr)) {
+                WriteLog(L"BASS_Init failed: " + BassErrorText(BASS_ErrorGetCode()));
+                g_bassInitialized = false;
+            }
+            else {
+                g_bassInitialized = true;
+            }
+        }
+        if (g_bassInitialized) {
+            ++g_bassRefCount;
+            m_bassInit.store(true);
+        }
+        else {
+            m_bassInit.store(false);
+        }
     }
 
     for (;;) {
@@ -148,9 +164,19 @@ void AudioPlayer::WorkerProc()
         m_stream = 0;
         m_isMusic = false;
     }
-    if (m_bassInit.load()) {
-        BASS_Free();
+    {
+        std::lock_guard<std::mutex> lock(g_bassMutex);
+        if (m_bassInit.load()) {
+            if (g_bassRefCount > 0) {
+                --g_bassRefCount;
+            }
+            if (g_bassRefCount == 0 && g_bassInitialized) {
+                BASS_Free();
+                g_bassInitialized = false;
+            }
+        }
     }
+    m_bassInit.store(false);
     m_hasStream.store(false);
     m_playing.store(false);
 }

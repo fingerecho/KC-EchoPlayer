@@ -6,7 +6,10 @@
 
 #include "AudioPlayer.h"
 #include "SystemVolume.h"
+#include "Resource.h"
+#include "DatabaseMgr.h"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -46,11 +49,112 @@ private:
         ui::Label* name = nullptr;
     };
 
+    struct LyricLine
+    {
+        int64_t timeMs = 0;
+        std::wstring text;
+    };
+
+    struct SongInfo
+    {
+        int64_t id = 0;
+        std::wstring title;
+        std::wstring artist;
+        std::wstring album;
+        std::wstring filePath;
+        std::wstring coverPath;
+        int64_t durationMs = 0;
+        int64_t fileSize = 0;
+    };
+
+    struct RecentSongInfo : SongInfo
+    {
+        int64_t lastPlayedAt = 0;
+        int64_t playCount = 0;
+        int64_t lastPositionMs = 0;
+        bool favorite = false;
+    };
+
+    struct FavoriteSongInfo : SongInfo
+    {
+        int64_t addedAt = 0;
+        int64_t sortOrder = 0;
+        int64_t playCount = 0;
+        std::wstring note;
+    };
+
+    struct LocalRowUi
+    {
+        ui::Button* index = nullptr;
+        ui::Label* title = nullptr;
+        ui::Label* artist = nullptr;
+        ui::Label* album = nullptr;
+        ui::Label* duration = nullptr;
+        ui::Label* size = nullptr;
+    };
+
+    struct RecentRowUi
+    {
+        ui::Button* index = nullptr;
+        ui::Label* title = nullptr;
+        ui::Label* artist = nullptr;
+        ui::Label* album = nullptr;
+        ui::Button* favorite = nullptr;
+        ui::Label* playedTime = nullptr;
+    };
+
+    struct FavoriteRowUi
+    {
+        ui::Button* index = nullptr;
+        ui::Label* title = nullptr;
+        ui::Label* artist = nullptr;
+        ui::Label* album = nullptr;
+        ui::Label* addedTime = nullptr;
+        ui::Label* playCount = nullptr;
+        ui::Button* remove = nullptr;
+    };
+
     void OnOpenFile();
     void OnSelectVersionMenu();
     void OnVersionSelected(size_t index);
     void SwitchVersion(Version version);
     void InitNetEaseUi();
+    void InitDatabase();
+    void LoadLocalSongs();
+    void LoadRecentSongs();
+    void LoadFavoriteSongs();
+    void RefreshLocalList();
+    void RefreshRecentList();
+    void RefreshFavoriteList();
+    void RefreshAllNetEaseLists();
+    void UpdateNetEaseLocalCount();
+    void UpdateNetEaseFavoriteCount();
+    void ChooseMusicSource();
+    void ImportMusicFiles(std::vector<std::wstring> files);
+    void ImportMusicFolder(const std::wstring& folder);
+    bool AddSongToDatabase(const std::wstring& filePath, SongInfo& song);
+    void PlaySong(const SongInfo& song);
+    void PlayLocalRow(size_t index);
+    void PlayRecentRow(size_t index);
+    void PlayFavoriteRow(size_t index);
+    void PlayNetEaseNext();
+    void PlayNetEasePrevious();
+    void AddFavoriteBySongId(int64_t songId);
+    void RemoveFavoriteBySongId(int64_t songId);
+    void RecordRecentPlay(const SongInfo& song);
+    void UpdateNetEaseRowStyles();
+    void UpdateNetEaseBottomInfo();
+    void LoadLyricsForSong(const std::wstring& filePath);
+    void UpdateLyricsPanel(double positionSeconds);
+    int FindLocalIndexBySongId(int64_t songId) const;
+    int FindRecentIndexBySongId(int64_t songId) const;
+    int FindFavoriteIndexBySongId(int64_t songId) const;
+    void ShowHint(const std::wstring& text);
+    void LoadAppSettings();
+    void SetAutoStart(bool enabled);
+    bool IsAutoStartEnabled() const;
+    void SetAutoPlayOnStartup(bool enabled);
+    bool IsAutoPlayOnStartup();
     void ShowNetEasePage(ui::Control* page);
     void ShowNetEasePlayer(bool show);
     void ToggleNetEasePlayback();
@@ -84,6 +188,37 @@ private:
     ui::Button* m_btnSelectVersion = nullptr;
 
     bool m_isNetEase = false;
+    DatabaseMgr m_database;
+    ui::VListBox* m_neLocalList = nullptr;
+    ui::VListBox* m_neRecentList = nullptr;
+    ui::VListBox* m_neFavoriteList = nullptr;
+    ui::Label* m_neLocalCount = nullptr;
+    ui::Label* m_neFavoriteCount = nullptr;
+    ui::Button* m_neChooseDir = nullptr;
+    ui::Button* m_neRecentSingleTab = nullptr;
+    ui::Label* m_neBottomTitle = nullptr;
+    ui::Label* m_neBottomArtist = nullptr;
+    ui::Label* m_nePlayerBottomTitle = nullptr;
+    ui::Label* m_nePlayerBottomArtist = nullptr;
+    ui::Label* m_nePlayerPageTitle = nullptr;
+    ui::Label* m_nePlayerPageMeta = nullptr;
+    std::vector<ui::Label*> m_lyricLabels;
+    std::vector<LyricLine> m_lyrics;
+    int m_currentLyricIndex = -1;
+    ui::CheckBox* m_neCheckAutoStart = nullptr;
+    ui::CheckBox* m_neCheckAutoPlay = nullptr;
+
+    std::vector<SongInfo> m_localSongs;
+    std::vector<RecentSongInfo> m_recentSongs;
+    std::vector<FavoriteSongInfo> m_favoriteSongs;
+    std::vector<LocalRowUi> m_neLocalRowUi;
+    std::vector<RecentRowUi> m_neRecentRowUi;
+    std::vector<FavoriteRowUi> m_neFavoriteRowUi;
+    std::vector<bool> m_neFavoriteRowHovered;
+    std::vector<bool> m_neFavoriteIconHovered;
+    int m_neFavoriteActiveRow = -1;
+    SongInfo m_currentSong;
+    bool m_hasCurrentSong = false;
     ui::Control* m_neBodyNormal = nullptr;
     ui::Control* m_neBodyPlayer = nullptr;
     ui::Control* m_nePageLocal = nullptr;
@@ -110,6 +245,8 @@ private:
     std::vector<ui::Button*> m_neRecentIndexButtons;
     std::vector<bool> m_neRecentRowHovered;
     std::vector<bool> m_neRecentIconHovered;
+    std::vector<ui::Control*> m_neFavoriteRows;
+    std::vector<ui::Button*> m_neFavoriteIndexButtons;
 
     ui::VListBox* m_playlistBox = nullptr;
     ui::Button* m_btnOpen = nullptr;
