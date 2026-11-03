@@ -7,15 +7,15 @@
 ### 运行效果截图
 
 
-!\[纯粹播放器版主界面浅色主题截图](docs/main\_pic\_01.png)
+![纯粹播放器版主界面浅色主题截图](docs/main_pic_01.png)
 
-!\[纯粹播放器版主界面深色色主题截图](docs/main\_pic\_02.png)
+![纯粹播放器版主界面深色色主题截图](docs/main_pic_02.png)
 
-!\[克铖云音乐版本主界面之本地音乐](docs/main\_pic\_03.png)
+![克铖云音乐版本主界面之本地音乐](docs/main_pic_03.png)
 
-!\[克铖云音乐版本主界面之最近播放](docs/main\_pic\_04.png)
+![克铖云音乐版本主界面之最近播放](docs/main_pic_04.png)
 
-!\[克铖云音乐版本主界面之我的收藏](docs/main\_pic\_06.png)
+![克铖云音乐版本主界面之我的收藏](docs/main_pic_06.png)
 
-!\[克铖云音乐版本主界面之歌词界面](docs/main\_pic\_05.png)
+![克铖云音乐版本主界面之歌词界面](docs/main_pic_05.png)
 
